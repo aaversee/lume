@@ -1,7 +1,5 @@
 # LUME
 
-An end-to-end encrypted, anonymous messenger.
-
 The server is a blind relay: it stores and forwards opaque encrypted blobs and
 never sees plaintext, keys, or message content. All cryptography runs on the
 client.
