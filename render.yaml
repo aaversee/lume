@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: lume-api
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: WS_TRUST_PROXY
+        value: "1"
+      - key: WS_JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        sync: false
+      # NOTE: the free plan has an ephemeral filesystem (no persistent disk), so
+      # this SQLite DB is reset on every deploy/restart. Acceptable by design —
+      # LUME is client-authoritative: clients transparently re-bind their identity
+      # and re-upload prekeys on next unlock (see docs/PROTOCOL.md). Trade-off:
+      # undelivered (pending) messages and uploaded files do not survive a
+      # redeploy. For durable server state, switch to a paid plan with a `disk:`
+      # mount (or managed storage). SEC-20260621-015.
+      - key: DB_PATH
+        value: /app/data/messenger.db
