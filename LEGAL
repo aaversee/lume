@@ -1,8 +1,8 @@
 LUME — licensing and third-party notices
 ========================================
 
-LUME is source-available software licensed under the LUME Source-Available
-License 1.0. The full text is in `LICENSE`. This is not an open-source or
+LUME is source-available software licensed under the terms in `LICENSE`
+(view-only). This is not an open-source or
 free-software licence: you may read and reference the source, but running,
 copying, modifying, or distributing it requires a separate written licence from
 the copyright holder.
@@ -106,9 +106,9 @@ Material under `brand/` is project-owned and is not covered by the dependency
 licences above.
 
 LUME is not affiliated with Telegram, Signal, or any other messenger. Where the
-repository documents ideas studied in other projects (see `IDEAS.md`), those are
-design conclusions written from scratch — no third-party source was copied, and
-no third-party trademark or asset is used.
+repository documents ideas studied in other projects, those are design
+conclusions written from scratch — no third-party source was copied, and no
+third-party trademark or asset is used.
 
 
 Cryptography and export
