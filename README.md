@@ -36,7 +36,7 @@ public issue.
 ## Licence
 
 This repository is **source-available for viewing only**, under the
-[LUME Source-Available License 1.0](LICENSE). You may read and reference the
+[LICENSE](LICENSE). You may read and reference the
 source, but running, copying, modifying, or distributing it requires a separate
 written licence. This is not an open-source or free-software licence.
 
