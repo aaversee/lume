@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { t } from "@/lib/i18n";
 import { Popover } from "@/components/ui/Popover";
 
@@ -31,6 +31,10 @@ export default function AddContactPopover({
   loading,
   align = "end",
 }: AddContactPopoverProps) {
+  // Rendered inside ChatListPanel, which the chats page mounts twice (mobile and
+  // desktop trees, one hidden by CSS). With a fixed id the label would resolve to
+  // whichever copy came first in the document — possibly the hidden one.
+  const fieldId = useId();
   const [username, setUsername] = useState("");
 
   // Clear the field whenever the popover opens or closes (derived-state reset —
@@ -50,13 +54,13 @@ export default function AddContactPopover({
   return (
     <Popover open={open} onClose={onClose} anchorRef={anchorRef} align={align} width={288}>
       <label
-        htmlFor="add-contact-username"
+        htmlFor={fieldId}
         className="block px-1.5 pt-1 pb-2 text-xs font-semibold text-[var(--text-secondary)]"
       >
         Start chat
       </label>
       <input
-        id="add-contact-username"
+        id={fieldId}
         name="add-contact-username"
         autoFocus
         value={username}

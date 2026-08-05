@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { t } from "@/lib/i18n";
 import type { Message } from "@/stores";
 import type { Contact } from "@/crypto/storage";
@@ -49,6 +49,10 @@ export default function ChatInput({
   onCancelAttachment,
 }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The chat page renders one tree for mobile and one for desktop and hides the
+  // other with CSS, so this component is mounted twice at once. A fixed `id`
+  // would exist twice in the document.
+  const fieldId = useId();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,7 +124,7 @@ export default function ChatInput({
       <div className="flex items-end gap-3">
         <div className="flex-1">
           <textarea
-            id="message-input"
+            id={`${fieldId}-message`}
             name="message"
             value={messageText}
             onChange={(e) => onMessageChange(e.target.value)}
@@ -137,7 +141,7 @@ export default function ChatInput({
           <>
             <input
               ref={fileInputRef}
-              id="chat-attachment"
+              id={`${fieldId}-attachment`}
               name="chat-attachment"
               type="file"
               onChange={handleFileSelect}

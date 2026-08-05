@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Chat } from '@/stores';
 import { useBlockedStore, useChatsStore, useGroupsStore, useUIStore } from '@/stores';
@@ -235,6 +235,10 @@ export default function ChatListPanel({
   avatarMap?: Record<string, string>;
 }) {
   const router = useRouter();
+  // This panel is mounted twice at once — the chats page renders a mobile tree
+  // and a desktop tree and hides one with CSS — so a fixed field id would exist
+  // twice in the document.
+  const fieldId = useId();
   const showHiddenChats = useUIStore((s) => s.showHiddenChats);
   const setShowHiddenChats = useUIStore((s) => s.setShowHiddenChats);
   const setChatHidden = useChatsStore((s) => s.setChatHidden);
@@ -471,7 +475,7 @@ export default function ChatListPanel({
               </svg>
             </span>
             <input
-              id="chat-search"
+              id={`${fieldId}-search`}
               name="chat-search"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}

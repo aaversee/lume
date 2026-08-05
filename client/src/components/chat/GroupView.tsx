@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { groupsApi, filesApi } from "@/lib/api";
 import type { GroupData } from "@/lib/api";
@@ -49,6 +49,9 @@ interface GroupViewProps {
 }
 
 export default function GroupView({ group }: GroupViewProps) {
+  // Mounted twice at once — the chats page renders a mobile tree and a desktop
+  // tree and hides one with CSS — so field ids must be per-instance.
+  const fieldId = useId();
   const userId = useAuthStore((s) => s.userId);
   const updateGroup = useGroupsStore((s) => s.updateGroup);
   const removeGroup = useGroupsStore((s) => s.removeGroup);
@@ -576,7 +579,7 @@ export default function GroupView({ group }: GroupViewProps) {
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <textarea
-                  id="group-message-input"
+                  id={`${fieldId}-message`}
                   name="group-message"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
@@ -592,7 +595,7 @@ export default function GroupView({ group }: GroupViewProps) {
               </div>
               <input
                 ref={fileInputRef}
-                id="group-attachment"
+                id={`${fieldId}-attachment`}
                 name="group-attachment"
                 type="file"
                 onChange={handleFileSelect}

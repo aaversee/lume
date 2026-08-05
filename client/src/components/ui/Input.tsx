@@ -27,6 +27,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            // No password field in LUME is a login credential the server checks.
+            // Every one of them is a local secret: the passphrase that derives the
+            // at-rest master key, or a hidden-chat PIN. Handing those to a browser
+            // password manager — which usually syncs to a vendor cloud — puts the
+            // only thing protecting the encrypted store outside the device.
+            // Defaulted here rather than at each call site so a new password field
+            // cannot be added without it. `{...props}` spreads after, so a caller
+            // that genuinely needs different behaviour still wins.
+            // SEC-20260805-002.
+            autoComplete={props.type === 'password' ? 'new-password' : undefined}
             className={`
               apple-input
               ${icon ? 'apple-input-icon' : ''}

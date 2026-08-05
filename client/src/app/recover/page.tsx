@@ -277,6 +277,8 @@ export default function RecoverPage() {
               <input
                 id="recover-pin"
                 type="password"
+                // See Input.tsx: a local KDF input, not a saved credential.
+                autoComplete="new-password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 placeholder="••••"
@@ -291,6 +293,7 @@ export default function RecoverPage() {
               <input
                 id="recover-pin-confirm"
                 type="password"
+                autoComplete="new-password"
                 value={pinConfirm}
                 onChange={(e) => setPinConfirm(e.target.value)}
                 placeholder="••••"

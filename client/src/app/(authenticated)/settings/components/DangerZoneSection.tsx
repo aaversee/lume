@@ -84,7 +84,9 @@ export default function DangerZoneSection() {
             id="delete-account-pin"
             name="delete-account-pin"
             type="password"
-            autoComplete="off"
+            // `new-password`, not `off`: Chromium ignores `off` on password
+            // fields and offers to save anyway. SEC-20260805-002.
+            autoComplete="new-password"
             value={deletePin}
             onChange={(e) => setDeletePin(e.target.value)}
             placeholder={t("settings.danger.pinPlaceholder")}

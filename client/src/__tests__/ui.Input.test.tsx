@@ -95,4 +95,28 @@ describe('Input', () => {
     render(<Input ref={ref} />);
     expect(ref.current).toBeInstanceOf(HTMLInputElement);
   });
+
+  // SEC-20260805-002. Every password field in this app holds a local secret —
+  // the passphrase behind the at-rest master key, or a hidden-chat PIN — not a
+  // credential the server checks. None of them should end up in a browser
+  // password manager, which usually means a vendor cloud.
+  describe('password fields are kept out of the password manager', () => {
+    it('defaults type="password" to autoComplete="new-password"', () => {
+      const { container } = render(<Input type="password" />);
+      const input = container.querySelector('input');
+      expect(input?.getAttribute('autocomplete')).toBe('new-password');
+    });
+
+    it('leaves non-password fields alone', () => {
+      // A username or search field has no reason to opt out of autofill, and
+      // blanket-disabling it would be a usability cost with no security gain.
+      render(<Input type="text" />);
+      expect(screen.getByRole('textbox').getAttribute('autocomplete')).toBeNull();
+    });
+
+    it('still lets a call site override it', () => {
+      const { container } = render(<Input type="password" autoComplete="off" />);
+      expect(container.querySelector('input')?.getAttribute('autocomplete')).toBe('off');
+    });
+  });
 });

@@ -45,7 +45,8 @@ export default function BackupModal({
           id="backup-pin"
           name="backup-pin"
           type="password"
-          autoComplete="off"
+          // `new-password`, not `off` — see DangerZoneSection. SEC-20260805-002.
+          autoComplete="new-password"
           value={backupPin}
           onChange={(e) => setBackupPin(e.target.value)}
           placeholder={t("modal.backup.pinPlaceholder")}

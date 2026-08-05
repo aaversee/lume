@@ -319,6 +319,9 @@ export default function SetupPage() {
                 <input
                   id="setup-pin"
                   type="password"
+                  // Not a credential the browser should keep. See Input.tsx —
+                  // this field is a raw <input>, so it carries it itself.
+                  autoComplete="new-password"
                   inputMode="text"
                   maxLength={MAX_PIN_LENGTH}
                   value={pin}
@@ -334,6 +337,7 @@ export default function SetupPage() {
                 <input
                   id="setup-pin-confirm"
                   type="password"
+                  autoComplete="new-password"
                   inputMode="text"
                   maxLength={MAX_PIN_LENGTH}
                   value={pinConfirm}
