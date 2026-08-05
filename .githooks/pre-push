@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# The complete gate: everything CI runs, before it reaches the remote.
+#
+# The point is not to duplicate CI — it is to find out in two minutes on this
+# machine rather than in ten on a runner, and to keep a red branch from ever
+# being something other people have to look at.
+#
+# Docker and Playwright are left to CI: both need setup this hook cannot assume.
+#
+# Install: npm run hooks:install
+
+set -e
+
+printf '\n[pre-push] running the full verify — this is the slow one\n'
+npm run verify
+
+printf '\n[pre-push] ok\n'

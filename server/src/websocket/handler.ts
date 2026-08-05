@@ -9,10 +9,66 @@ import database from '../db/database'
 import { buildOriginAllowlist, isOriginAllowed } from '../utils/originAllowlist'
 import { isValidMessageIds, isValidRecipientId } from '../utils/validators'
 import { WsMessageSchema } from '../schemas/websocket'
+import { getTrustedProxyHops } from '../utils/trustProxy'
 import type { TypingMessage, ReadReceiptMessage } from '../schemas/websocket'
 
 // Connected users map: userId -> Set<WebSocket>
 const connectedUsers = new Map<string, Set<WebSocket>>()
+
+/**
+ * Sockets currently held open, per address.
+ *
+ * The handshake limiter bounds how *fast* one address may open connections (10
+ * a minute); nothing bounded how many it could accumulate. Sustained, that is
+ * 600 held sockets an hour from one caller, and the per-user cap of 5 does not
+ * help because registering more accounts raises it.
+ *
+ * The default is deliberately generous, and that is a judgement rather than an
+ * oversight. LUME's users are disproportionately behind shared exits — carrier
+ * NAT, VPNs, Tor — where one address legitimately carries many people. A tight
+ * per-IP cap on a privacy tool does not read as security to the person it locks
+ * out; it reads as the product being broken on their network. So the per-IP
+ * number is high enough to cover a shared exit, and the ceiling that actually
+ * protects the process is the global one below.
+ */
+const connectionsByIp = new Map<string, Set<WebSocket>>()
+
+/** Per-address concurrent sockets. High on purpose — see above. */
+const MAX_CONNECTIONS_PER_IP = Number(process.env.WS_MAX_CONNECTIONS_PER_IP || 128)
+
+/**
+ * Total concurrent sockets for this process. This is the real protection: it
+ * bounds memory and event-loop pressure no matter how the load is distributed
+ * across addresses, which a per-IP rule cannot do once an attacker has more
+ * than one address.
+ */
+const MAX_CONNECTIONS_TOTAL = Number(process.env.WS_MAX_CONNECTIONS_TOTAL || 5000)
+
+/** Sockets currently held, across every address. */
+function totalOpenConnections(): number {
+  let total = 0
+  for (const sockets of connectionsByIp.values()) total += sockets.size
+  return total
+}
+
+function trackIpConnection(ip: string, ws: WebSocket): void {
+  const existing = connectionsByIp.get(ip)
+  if (existing) {
+    existing.add(ws)
+    return
+  }
+  connectionsByIp.set(ip, new Set([ws]))
+}
+
+function releaseIpConnection(ip: string, ws: WebSocket): void {
+  const sockets = connectionsByIp.get(ip)
+  if (!sockets) return
+  sockets.delete(ws)
+  // Delete the empty set rather than leaving it: the map is keyed by a
+  // caller-influenced value, so an entry that is never removed is a slow leak
+  // an attacker can drive by rotating addresses.
+  if (sockets.size === 0) connectionsByIp.delete(ip)
+}
 
 // Rate limits
 const connectionRateLimits = new Map<string, number[]>() // IP -> timestamps
@@ -25,6 +81,8 @@ export interface AuthenticatedWebSocket extends WebSocket {
   userId: string
   username: string
   isAlive: boolean // Heartbeat flag
+  /** Address this socket was bucketed under, so `close` releases the same slot. */
+  clientIp?: string
   /** Inbound frame budget, per socket. See `withinFrameBudget`. */
   frameWindowStart?: number
   frameCount?: number
@@ -75,11 +133,13 @@ function withinFrameBudget(ws: AuthenticatedWebSocket, type: string): FrameBudge
 }
 
 /**
- * Trusted proxy hops in front of the server, matching `app.set('trust proxy', 1)`
- * in `index.ts`. Both sides must agree: the HTTP limiter and the WebSocket
- * handshake limiter should bucket the same caller into the same key.
+ * Trusted proxy hops, read from the same function `index.ts` configures Express
+ * with. Both sides must agree — the HTTP limiter and the WebSocket handshake
+ * limiter have to bucket one caller into one key — and this used to be a
+ * duplicated constant kept in step by a comment. Deployments change the chain
+ * (Cloudflare in front of Render adds a hop), and a number that must be edited
+ * in two files is one that will eventually be edited in one.
  */
-const TRUSTED_PROXY_HOPS = 1
 
 /**
  * Resolves the client address for rate-limit bucketing. SEC-20260721-004.
@@ -97,14 +157,10 @@ const TRUSTED_PROXY_HOPS = 1
  * `trust proxy` does, which is why the HTTP path never had this bug.
  */
 function getClientIp(req: IncomingMessage): string {
-  const trustProxy =
-    process.env.TRUST_PROXY === '1' ||
-    process.env.TRUST_PROXY === 'true' ||
-    process.env.WS_TRUST_PROXY === '1' ||
-    process.env.WS_TRUST_PROXY === 'true'
+  const trustedHopCount = getTrustedProxyHops()
 
   const socketAddress = req.socket.remoteAddress || 'unknown'
-  if (!trustProxy) return socketAddress
+  if (trustedHopCount === 0) return socketAddress
 
   const xForwardedFor = req.headers['x-forwarded-for']
   if (!xForwardedFor) return socketAddress
@@ -119,13 +175,13 @@ function getClientIp(req: IncomingMessage): string {
 
   // Fewer entries than trusted hops means the header did not come through the
   // expected chain. Fall back to the socket peer, which cannot be forged.
-  if (entries.length < TRUSTED_PROXY_HOPS) return socketAddress
+  if (entries.length < trustedHopCount) return socketAddress
 
   // Take the trusted tail and read its head. A computed index here would be a
   // request-derived member access, which `security/detect-object-injection`
   // rejects; `.at()` is unavailable under the server's current `lib` target and
   // raising that for one call is not worth the blast radius.
-  const trustedHops = entries.slice(-TRUSTED_PROXY_HOPS)
+  const trustedHops = entries.slice(-trustedHopCount)
   return trustedHops[0] ?? socketAddress
 }
 
@@ -192,6 +248,20 @@ export function initWebSocket(wss: WebSocketServer): void {
 
     validTimestamps.push(now)
     connectionRateLimits.set(ip, validTimestamps)
+
+    // Checked before any authentication work: refusing here costs a comparison,
+    // whereas refusing after the JWT verification would have the attacker
+    // setting the price.
+    if (totalOpenConnections() >= MAX_CONNECTIONS_TOTAL) {
+      return abort(4005, 'Server connection limit reached')
+    }
+    const openFromThisIp = connectionsByIp.get(ip)?.size ?? 0
+    if (openFromThisIp >= MAX_CONNECTIONS_PER_IP) {
+      return abort(4005, 'Too many connections from this address')
+    }
+
+    ws.clientIp = ip
+    trackIpConnection(ip, ws)
 
     const skipOriginCheck =
       process.env.SKIP_ORIGIN_CHECK === '1' &&
@@ -329,6 +399,10 @@ export function initWebSocket(wss: WebSocketServer): void {
     })
 
     ws.on('close', () => {
+      // Released unconditionally: a socket that never finished authenticating
+      // still occupied a slot, and leaking those is precisely the accumulation
+      // this cap exists to stop.
+      if (ws.clientIp) releaseIpConnection(ws.clientIp, ws)
       if (ws.userId) {
         removeConnection(ws.userId, ws)
         database.touchLastSeen(ws.userId)

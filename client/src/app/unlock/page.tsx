@@ -30,8 +30,6 @@ export default function UnlockPage() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const PIN_LENGTH = MAX_PIN_LENGTH;
-
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,7 +45,7 @@ export default function UnlockPage() {
   const handlePinChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     // Allow any characters: the secret is now an alphanumeric passphrase, not a
     // numeric PIN. SEC-20260721-020.
-    const value = e.target.value.slice(0, PIN_LENGTH);
+    const value = e.target.value.slice(0, MAX_PIN_LENGTH);
     if (value.length > pin.length) {
       setBouncingDot(value.length - 1);
     }
@@ -267,7 +265,7 @@ export default function UnlockPage() {
             autoFocus
             className="sr-only"
             aria-label={t("auth.unlock.pinAria")}
-            maxLength={PIN_LENGTH}
+            maxLength={MAX_PIN_LENGTH}
           />
 
           {/* Visual PIN dots */}

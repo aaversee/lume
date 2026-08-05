@@ -868,8 +868,9 @@ export async function checkPinLockout(): Promise<void> {
 export async function recordPinFailure(): Promise<void> {
   failedPinAttempts++;
   for (let i = LOCKOUT_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (failedPinAttempts >= LOCKOUT_THRESHOLDS[i]!.attempts) {
-      lockedUntil = Date.now() + LOCKOUT_THRESHOLDS[i]!.lockSeconds * 1000;
+    const threshold = LOCKOUT_THRESHOLDS[i];
+    if (threshold && failedPinAttempts >= threshold.attempts) {
+      lockedUntil = Date.now() + threshold.lockSeconds * 1000;
       break;
     }
   }
@@ -888,13 +889,39 @@ export const HIDDEN_PIN_PBKDF2_ITERATIONS = 600_000; // OWASP 2023 for PBKDF2-SH
 const LEGACY_HIDDEN_PIN_ITERATIONS = 100_000;
 
 /**
+ * Bounds on the iteration count read back from a stored hidden-chat PIN hash.
+ *
+ * The count is a field inside a string in IndexedDB, so it is untrusted input to
+ * this process, not a constant. Unbounded, it is two separate problems:
+ *
+ *   - **downgrade.** Rewriting the stored hash to `salt:1:hash` makes the PIN
+ *     derivation one PBKDF2 round, which is offline-brute-forceable at once. The
+ *     floor is the legacy count, so a rewrite can never weaken it below what the
+ *     oldest supported format already used.
+ *   - **denial of service.** `salt:99999999999:hash` makes the device sit in
+ *     `deriveBits` on every unlock attempt.
+ *
+ * A non-numeric segment parses to NaN, which previously reached `deriveBits`
+ * directly.
+ */
+const MIN_HIDDEN_PIN_ITERATIONS = LEGACY_HIDDEN_PIN_ITERATIONS;
+const MAX_HIDDEN_PIN_ITERATIONS = 10_000_000;
+
+/**
  * Constant-time comparison to prevent timing attacks.
  */
-function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
-    diff |= a[i]! ^ b[i]!;
+    const av = a[i];
+    const bv = b[i];
+    // Unreachable inside the bound, and deliberately not `?? 0`: two missing
+    // bytes would then compare *equal*, which is the wrong direction to fail for
+    // a hash check. The early return is independent of the compared values, so
+    // for every reachable input the loop still runs in constant time.
+    if (av === undefined || bv === undefined) return false;
+    diff |= av ^ bv;
   }
   return diff === 0;
 }
@@ -924,16 +951,30 @@ export async function verifyHiddenChatPin(
   let expectedBytes: Uint8Array;
   let iterations: number;
 
+  // Destructured rather than indexed: a stored hash is untrusted input, and a
+  // missing segment must refuse the PIN rather than be asserted away.
   if (parts.length === 3) {
     // New format: "salt:iterations:hash"
-    salt = decodeBase64(parts[0]!);
-    iterations = parseInt(parts[1]!, 10);
-    expectedBytes = decodeBase64(parts[2]!);
+    const [saltPart, iterationsPart, hashPart] = parts;
+    if (!saltPart || !iterationsPart || !hashPart) return false;
+    const parsedIterations = Number.parseInt(iterationsPart, 10);
+    if (
+      !Number.isInteger(parsedIterations) ||
+      parsedIterations < MIN_HIDDEN_PIN_ITERATIONS ||
+      parsedIterations > MAX_HIDDEN_PIN_ITERATIONS
+    ) {
+      return false;
+    }
+    salt = decodeBase64(saltPart);
+    iterations = parsedIterations;
+    expectedBytes = decodeBase64(hashPart);
   } else if (parts.length === 2) {
     // Legacy format: "salt:hash" (100k iterations)
-    salt = decodeBase64(parts[0]!);
+    const [saltPart, hashPart] = parts;
+    if (!saltPart || !hashPart) return false;
+    salt = decodeBase64(saltPart);
     iterations = LEGACY_HIDDEN_PIN_ITERATIONS;
-    expectedBytes = decodeBase64(parts[1]!);
+    expectedBytes = decodeBase64(hashPart);
   } else {
     return false;
   }

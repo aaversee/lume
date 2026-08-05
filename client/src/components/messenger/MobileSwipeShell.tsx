@@ -36,8 +36,13 @@ export default function MobileSwipeShell({ profilePanel, chatListPanel }: Mobile
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    touchStartX.current = e.touches[0]!.clientX;
-    touchStartY.current = e.touches[0]!.clientY;
+    // `touches` can be empty — a cancelled or multi-finger gesture reaches these
+    // handlers with no entry at index 0, and reading `.clientX` off undefined
+    // throws inside a touch listener. Ignoring the event is the correct response.
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
     isHorizontalSwipe.current = null;
     setIsDragging(false);
     setDragOffset(0);
@@ -45,8 +50,10 @@ export default function MobileSwipeShell({ profilePanel, chatListPanel }: Mobile
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
-      const deltaX = e.touches[0]!.clientX - touchStartX.current;
-      const deltaY = e.touches[0]!.clientY - touchStartY.current;
+      const touch = e.touches[0];
+      if (!touch) return;
+      const deltaX = touch.clientX - touchStartX.current;
+      const deltaY = touch.clientY - touchStartY.current;
 
       // Classify gesture on first significant movement.
       if (isHorizontalSwipe.current === null) {
@@ -88,7 +95,13 @@ export default function MobileSwipeShell({ profilePanel, chatListPanel }: Mobile
         return;
       }
 
-      const deltaX = e.changedTouches[0]!.clientX - touchStartX.current;
+      const endTouch = e.changedTouches[0];
+      if (!endTouch) {
+        setDragOffset(0);
+        setIsDragging(false);
+        return;
+      }
+      const deltaX = endTouch.clientX - touchStartX.current;
 
       if (deltaX < -SWIPE_THRESHOLD && activePanel === 0) {
         setActivePanel(1);

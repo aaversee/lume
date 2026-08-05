@@ -21,6 +21,7 @@ import database from './db/database'
 import { buildOriginAllowlist, isOriginAllowed } from './utils/originAllowlist'
 import { validateWsJwtSecret } from './utils/validateSecret'
 import { validateJsonLimit } from './utils/validateJsonLimit'
+import { parseTrustProxyHops, getTrustedProxyHops } from './utils/trustProxy'
 import { redactSensitivePath } from './utils/logRedaction'
 import rateLimit from 'express-rate-limit'
 
@@ -33,9 +34,17 @@ if (!wsSecretCheck.ok) {
 const app = express()
 app.disable('x-powered-by')
 
-const TRUST_PROXY = process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true'
-if (TRUST_PROXY) {
-  app.set('trust proxy', 1)
+// Refuse to boot on an unparseable value rather than falling back to 0. A
+// silent fallback would put every caller in one rate-limit bucket, which looks
+// like the limiter working right up until it denies service to everyone.
+const trustProxyCheck = parseTrustProxyHops(process.env.TRUST_PROXY)
+if (!trustProxyCheck.ok) {
+  console.error(`FATAL ERROR: ${trustProxyCheck.reason}.`)
+  process.exit(1)
+}
+const TRUSTED_PROXY_HOPS = getTrustedProxyHops()
+if (TRUSTED_PROXY_HOPS > 0) {
+  app.set('trust proxy', TRUSTED_PROXY_HOPS)
 }
 
 const PORT = Number(process.env.PORT) || 3001
@@ -237,6 +246,46 @@ const wss = new WebSocketServer({
   maxPayload: Number.isFinite(WS_MAX_PAYLOAD_BYTES) ? WS_MAX_PAYLOAD_BYTES : 64 * 1024,
 })
 initWebSocket(wss)
+
+/**
+ * Socket timeouts. Node's defaults are generous — 60s for headers, 300s for a
+ * whole request — which leaves a cheap way to tie up connections: open many,
+ * send a byte of the request line every so often, never finish.
+ *
+ * The two are set apart on purpose, because they defend different things and
+ * one of them can break the product if it is tightened naively.
+ *
+ * `headersTimeout` is the slow-loris control and is independent of how big the
+ * body is: headers are small, so a caller that cannot finish them in 20 seconds
+ * is not on a bad connection, it is holding the socket open deliberately.
+ *
+ * `requestTimeout` covers the body, and the body here can legitimately be large.
+ * An attachment is 5 MB, base64-encoded into JSON, so roughly 6.7 MB on the
+ * wire — which is where the 8 MB JSON_LIMIT comes from. On a poor mobile uplink
+ * (~500 kbps) that upload takes close to two minutes. A 30-second request
+ * timeout would look like sensible hardening and would silently break sending a
+ * photo on a train. 120 seconds is well under Node's 300 and still above a
+ * realistic worst-case upload.
+ *
+ * `keepAliveTimeout` is deliberately left at Node's default. Lowering it behind
+ * a proxy is the classic cause of sporadic 502s: the proxy reuses a connection
+ * in the same instant the origin closes it. It is only worth touching against a
+ * known load-balancer idle timeout, and Render's is not documented here.
+ */
+const HEADERS_TIMEOUT_MS = Number(process.env.HEADERS_TIMEOUT_MS || 20_000)
+const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 120_000)
+
+// Node requires headersTimeout to exceed keepAliveTimeout, or it warns and the
+// header deadline is effectively ignored.
+if (HEADERS_TIMEOUT_MS <= server.keepAliveTimeout) {
+  console.error(
+    `FATAL ERROR: HEADERS_TIMEOUT_MS (${HEADERS_TIMEOUT_MS}) must exceed keepAliveTimeout (${server.keepAliveTimeout}).`
+  )
+  process.exit(1)
+}
+
+server.headersTimeout = HEADERS_TIMEOUT_MS
+server.requestTimeout = REQUEST_TIMEOUT_MS
 
 server.listen(PORT, HOST, () => {
   // Startup diagnostics — helps debug "account not found" issues

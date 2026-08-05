@@ -24,7 +24,8 @@ async function parallelMap<T, R>(
   let i = 0;
   const next = async (): Promise<void> => {
     while (i < items.length) {
-      const item = items[i++]!;
+      const item = items[i++];
+      if (item === undefined) break;
       await fn(item);
     }
   };

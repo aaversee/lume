@@ -12,6 +12,10 @@
     "validate:client": "cd client && npx tsc --noEmit",
     "test": "npm --prefix server test && npm --prefix client test",
     "test:e2e": "playwright test",
+    "verify": "npm run check:i18n && npm run check:css && npm run verify:server && npm run verify:client",
+    "verify:server": "cd server && npm run type-check && npm run lint && npm run format:check && npm run test:coverage && npm run build",
+    "verify:client": "cd client && npm run type-check && npm run lint && npm run test:coverage && npm run build",
+    "hooks:install": "git config core.hooksPath .githooks",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:css": "node scripts/check-css-vars.mjs"
   },

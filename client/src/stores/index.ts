@@ -252,11 +252,13 @@ export const useChatsStore = create<ChatsState>()((set, get) => ({
       const chatIndex = state.chats.findIndex((c) => c.id === chatId);
       if (chatIndex === -1) return state;
 
-      const chat = state.chats[chatIndex]!;
+      const chat = state.chats[chatIndex];
+      if (!chat) return state;
       const msgIndex = chat.messages.findIndex((m) => m.id === messageId);
       if (msgIndex === -1) return state;
 
-      const msg = chat.messages[msgIndex]!;
+      const msg = chat.messages[msgIndex];
+      if (!msg) return state;
       // Check if anything actually changed
       const changed = Object.entries(updates).some(
         ([key, val]) => msg[key as keyof typeof msg] !== val,

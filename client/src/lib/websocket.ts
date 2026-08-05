@@ -43,6 +43,14 @@ class WebSocketClient {
         return new Promise((resolve) => {
             this.clearReconnectTimer();
             if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+                /*
+                 * Not a secret comparison. Both tokens are already in this
+                 * process, and the result only decides whether the open socket
+                 * can be reused instead of reconnected. Nothing external can
+                 * time it and no value is being guessed, so a constant-time
+                 * compare here would buy nothing.
+                 */
+                // eslint-disable-next-line security/detect-possible-timing-attacks
                 if (this.token === token) {
                     resolve();
                     return;
@@ -283,10 +291,9 @@ class WebSocketClient {
      * Регистрирует обработчик события
      */
     on(type: string, handler: WSMessageHandler): void {
-        if (!this.handlers.has(type)) {
-            this.handlers.set(type, []);
-        }
-        this.handlers.get(type)!.push(handler);
+        const existing = this.handlers.get(type) ?? [];
+        existing.push(handler);
+        this.handlers.set(type, existing);
     }
 
     /**

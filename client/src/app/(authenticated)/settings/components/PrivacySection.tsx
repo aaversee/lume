@@ -17,6 +17,7 @@ import {
   saveSettings,
   verifyHiddenChatPin,
   deriveMasterKeyFromPin,
+  constantTimeEqual,
 } from "@/crypto/storage";
 import { useAuthStore, useChatsStore, useUIStore } from "@/stores";
 import { inviteApi, profileApi } from "@/lib/api";
@@ -224,16 +225,10 @@ export default function PrivacySection({
         // Verify the entered account PIN by deriving a key and comparing with session key
         const currentMasterKey = vaultGetMasterKey();
         const derivedKey = await deriveMasterKeyFromPin(hiddenAccountPin);
-        // Constant-time comparison
-        if (derivedKey.length !== currentMasterKey.length) {
-          setHiddenPinError(t("settings.hidden.errorWrongAccountPin"));
-          return;
-        }
-        let diff = 0;
-        for (let i = 0; i < derivedKey.length; i++) {
-          diff |= derivedKey[i]! ^ currentMasterKey[i]!;
-        }
-        if (diff !== 0) {
+        // Was an inline copy of the same loop. A constant-time comparison
+        // reimplemented in a component is one that nobody reviews as crypto —
+        // this now calls the audited helper, which also covers the length check.
+        if (!constantTimeEqual(derivedKey, currentMasterKey)) {
           setHiddenPinError(t("settings.hidden.errorWrongAccountPin"));
           return;
         }

@@ -203,9 +203,12 @@ function MessageBubble({
   });
 
   useEffect(() => {
-    if (!message.selfDestructAt) return undefined;
+    // Captured before the guard rather than re-read inside the interval: the
+    // closure outlives this render, and `message` can be replaced underneath it.
+    const expiresAt = message.selfDestructAt;
+    if (!expiresAt) return undefined;
     const update = () => {
-      const left = message.selfDestructAt! - Date.now();
+      const left = expiresAt - Date.now();
       setRemaining(left > 0 ? left : 0);
     };
     update();

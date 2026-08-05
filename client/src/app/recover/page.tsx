@@ -132,13 +132,21 @@ export default function RecoverPage() {
         setError(getUserError);
         return;
       } else {
-        if (data!.identityKey !== identity.signing.publicKey) {
+        // Narrowed rather than asserted: the branch above only rules out the
+        // "not found" shape, so a response with neither error nor body reached
+        // here and threw after the vault had already been reset.
+        if (!data) {
+          vaultClear();
+          setError(t("auth.recover.errorUnreachable"));
+          return;
+        }
+        if (data.identityKey !== identity.signing.publicKey) {
           vaultClear();
           setError(t("auth.recover.errorNoMatch"));
           return;
         }
-        resolvedUserId = data!.id;
-        resolvedUsername = data!.username;
+        resolvedUserId = data.id;
+        resolvedUsername = data.username;
       }
 
       await saveIdentityKeys(identity, masterKey);

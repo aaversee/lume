@@ -4,7 +4,7 @@
   "private": true,
   "author": "LUME Inc",
   "license": "SEE LICENSE IN LICENSE",
-  "repository": "https://github.com/aaversee/lume",
+  "repository": "https://github.com/reactorgrouptech/lume-internal",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -16,6 +16,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "dependencies": {

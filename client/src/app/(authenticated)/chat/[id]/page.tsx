@@ -533,8 +533,15 @@ export default function ChatPage({ params }: ChatPageProps) {
           );
 
           session = initSenderSession(sharedSecret, bundle.signedPrekey);
+          // Fail closed: the vault returns null when it is locked, and asserting
+          // that away turned a locked vault into a TypeError partway through
+          // building the X3DH header, after the session had already been created.
+          const senderPublicKeys = vaultGetPublicKeys();
+          if (!senderPublicKeys) {
+            throw new Error('Key vault is locked; cannot start a session');
+          }
           x3dhInit = {
-            senderIdentityKey: vaultGetPublicKeys()!.exchangePublicKey,
+            senderIdentityKey: senderPublicKeys.exchangePublicKey,
             senderEphemeralKey: ephemeralPublicKey,
             recipientOneTimePreKey: bundle.oneTimePrekey ?? null,
             // Tell the recipient which SPK we used so they can respond with the

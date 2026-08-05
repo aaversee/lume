@@ -150,8 +150,11 @@ export default function SetupPage() {
         })),
       });
 
-      if (error) {
-        setUsernameError(error);
+      if (error || !data) {
+        // `!data` was previously asserted away. A response carrying neither an
+        // error nor a body would have thrown mid-registration, after the vault
+        // had already been reset — leaving no account and no message saying why.
+        setUsernameError(error || "Registration error");
         setStep("username");
         return;
       }
@@ -175,10 +178,10 @@ export default function SetupPage() {
       await saveSettings({
         ...existingSettings,
         username,
-        userId: data!.id,
+        userId: data.id,
       });
       vaultSetAuth(generatedIdentity, masterKey);
-      setAuth(data!.id, username);
+      setAuth(data.id, username);
       setStep("save-seed");
     } catch (registrationError) {
       if (process.env.NODE_ENV !== "production")
