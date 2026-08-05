@@ -23,10 +23,49 @@ client.
 
 TypeScript strict throughout.
 
+## Mobile
+
+The native Android client lives in its own repository:
+[**aaversee/lume-mobile**](https://github.com/aaversee/lume-mobile).
+
+It is a real native app rather than this one in a wrapper, and it does not
+reimplement the cryptography — `src/crypto/` there is copied from this repository
+byte-identical, and this repository's own crypto tests run inside it unchanged,
+so the two cannot drift apart unnoticed.
+
 ## How it works
 
-The cryptographic protocol — key agreement, the message ratchet, prekeys, and
-safety numbers — is written up in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+[`docs/PROTOCOL.md`](docs/PROTOCOL.md) is the API reference: endpoints, the
+WebSocket protocol, the encrypted payload format, error handling.
+
+The cryptography itself is best read in the source, which is short and commented:
+
+| | |
+|---|---|
+| X3DH and the Double Ratchet | [`client/src/crypto/ratchet.ts`](client/src/crypto/ratchet.ts) |
+| Key generation and signing | [`client/src/crypto/keys.ts`](client/src/crypto/keys.ts) |
+| Recovery phrase | [`client/src/crypto/mnemonic.ts`](client/src/crypto/mnemonic.ts) |
+| Safety numbers | [`client/src/crypto/safetyNumber.ts`](client/src/crypto/safetyNumber.ts) |
+| Prekey rotation | [`client/src/crypto/spkRotation.ts`](client/src/crypto/spkRotation.ts) |
+| Where keys are held | [`client/src/crypto/keyVault.ts`](client/src/crypto/keyVault.ts) |
+
+## Check the central claim yourself
+
+The server storing nothing readable is the one thing worth verifying rather than
+believing. There is a script for it in the mobile repository: it registers two
+throwaway accounts on the live relay, sends a real message, reads back what was
+stored, and fails if the plaintext is in there.
+
+```bash
+git clone https://github.com/aaversee/lume-mobile
+cd lume-mobile && npm install && npm run e2e:message
+```
+
+```
+WHAT THE RELAY STORED (this is all it ever sees):
+  {"v":2,"alg":"lume-ratchet","header":{…},"ciphertext":"…"}
+  contains the plaintext? no
+```
 
 ## Security
 
