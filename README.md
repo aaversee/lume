@@ -36,7 +36,12 @@ so the two cannot drift apart unnoticed.
 ## How it works
 
 [`docs/PROTOCOL.md`](docs/PROTOCOL.md) is the API reference: endpoints, the
-WebSocket protocol, the encrypted payload format, error handling.
+WebSocket protocol, the encrypted payload format, error handling, and the table
+of limits.
+
+[`docs/DDOS.md`](docs/DDOS.md) covers abuse and denial of service — what is
+enforced in code, what can only be bought at the edge, and the gaps that are
+stated rather than glossed.
 
 The cryptography itself is best read in the source, which is short and commented:
 

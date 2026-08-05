@@ -1447,5 +1447,9 @@ Legacy `X-RateLimit-*` headers are disabled.
 | Max batch acknowledge IDs | 500 |
 | Max read receipt message IDs | 100 (unique, no duplicates) |
 | Pending message TTL | 30 days (server-side cleanup) |
+| Inactive account lifetime | 365 days, then deleted and the username released |
+| Registration | 30 accounts / hour per address |
+| Concurrent WebSocket sockets | 128 per address, 5000 per process, 5 per user |
+| Header / request deadline | 20s / 120s |
 | Signature validity window | 60 seconds |
 | JWT lifetime | 10 minutes |

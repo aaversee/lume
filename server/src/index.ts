@@ -330,6 +330,58 @@ const sigCleanupTimer = setInterval(
 )
 sigCleanupTimer.unref()
 
+/**
+ * Reclaim accounts nobody has used, releasing their usernames.
+ *
+ * The `users` table was the only one with no bound: an account is a row plus
+ * twenty prekeys, nothing pruned them, and the rate limiter alone let one
+ * address accumulate hundreds a day. Deleting the row is safe by design — it is
+ * a cache, and a client re-binds its existing identity silently on next unlock
+ * — but the username it releases can then be claimed by someone else, which is
+ * the part that makes this an identity decision rather than housekeeping. Taken
+ * deliberately by the owner on 2026-08-06.
+ *
+ * Two deliberate choices about the shape of it:
+ *
+ * **The default threshold is long — 365 days.** This is destructive and
+ * irreversible, so the default must not be able to surprise anyone. A year of
+ * total silence is unambiguous. Tighten it with `INACTIVE_USER_MAX_AGE_DAYS`
+ * once there is real usage data to argue from; a number chosen before launch
+ * would be a guess enforced by deletion.
+ *
+ * **A pass is bounded.** Deleting an unbounded set would hold a write
+ * transaction over the whole table while the server takes live traffic. Several
+ * small passes get to the same place; there is no deadline here.
+ *
+ * `last_seen` is null until a first authenticated action, so the query falls
+ * back to `created_at` — otherwise an account registered and abandoned, exactly
+ * the kind worth reclaiming, would never qualify.
+ */
+const INACTIVE_USER_MAX_AGE_DAYS = Number(process.env.INACTIVE_USER_MAX_AGE_DAYS || 365)
+const INACTIVE_USER_BATCH = Number(process.env.INACTIVE_USER_BATCH || 200)
+const INACTIVE_USER_SWEEP_INTERVAL = 6 * 60 * 60 * 1000 // every six hours
+
+if (INACTIVE_USER_MAX_AGE_DAYS < 30) {
+  console.error(
+    `FATAL ERROR: INACTIVE_USER_MAX_AGE_DAYS must be at least 30 (got ${INACTIVE_USER_MAX_AGE_DAYS}). ` +
+      'A short threshold on an irreversible delete is a footgun, not a configuration.'
+  )
+  process.exit(1)
+}
+
+const inactiveUserTimer = setInterval(() => {
+  const cutoff = Math.floor(Date.now() / 1000) - INACTIVE_USER_MAX_AGE_DAYS * 24 * 60 * 60
+  const { users, fileIds } = database.purgeInactiveUsers(cutoff, INACTIVE_USER_BATCH)
+  if (users.length === 0) return
+  // Blobs do not cascade with their rows; unlink them or they are unreachable
+  // files nobody ever reclaims.
+  if (fileIds.length > 0) void deleteFileBlobs(fileIds)
+  console.log(
+    `Reclaimed ${users.length} account(s) inactive for over ${INACTIVE_USER_MAX_AGE_DAYS} days; usernames released`
+  )
+}, INACTIVE_USER_SWEEP_INTERVAL)
+inactiveUserTimer.unref()
+
 // Purge expired invite tokens every 10 minutes
 const inviteCleanupTimer = setInterval(
   () => {

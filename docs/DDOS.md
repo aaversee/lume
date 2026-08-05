@@ -139,7 +139,26 @@ The window was tightened from ten minutes to an hour for the same allowance of
 thirty, cutting one address from 4,320 accounts a day to 720. Still generous
 enough for a campus or café behind one NAT.
 
-Whether inactive accounts should expire is left open deliberately. Mechanically
-it is safe — the server row is a cache and clients re-bind silently — but it
-releases the username, and a username someone else can then claim is an identity
-question rather than housekeeping.
+Inactive accounts now expire. Decided by the owner on 2026-08-06: an account
+untouched for `INACTIVE_USER_MAX_AGE_DAYS` is deleted and its username released
+for anyone to claim.
+
+The delete is safe mechanically — the row is a cache and a client re-binds its
+existing identity silently on the next unlock, keeping its safety numbers and
+sessions — and every child table cascades, so prekeys, pending messages, file
+rows, group memberships and blocks go with it. File blobs do not cascade, so
+their ids are collected first and unlinked.
+
+Two deliberate choices in the shape of it:
+
+- **The default is 365 days.** This is irreversible, so the default must not be
+  able to surprise anyone. A year of total silence is unambiguous; a tighter
+  number chosen before there is usage data would be a guess enforced by
+  deletion. The server refuses to boot with a threshold under 30 days.
+- **Each pass is bounded** (`INACTIVE_USER_BATCH`, default 200, every six
+  hours). Deleting an unbounded set would hold a write transaction over the
+  whole table while the server serves live traffic. There is no deadline here.
+
+`last_seen` is null until a first authenticated action, so the query falls back
+to `created_at` — otherwise an account registered in bulk and never touched,
+exactly the kind worth reclaiming, would never qualify.

@@ -261,6 +261,27 @@ const deleteUser = db.prepare(`
   DELETE FROM users WHERE id = ?
 `)
 
+/**
+ * Accounts untouched since a cutoff, oldest first.
+ *
+ * `last_seen` is null until a user's first authenticated action, so an account
+ * that was registered and abandoned would never match on `last_seen` alone.
+ * COALESCE onto `created_at` makes registration itself the clock's start —
+ * otherwise the accounts most worth reclaiming are precisely the ones that
+ * never qualify.
+ */
+const selectInactiveUsers = db.prepare(`
+  SELECT id, username FROM users
+  WHERE COALESCE(last_seen, created_at) < ?
+  ORDER BY COALESCE(last_seen, created_at) ASC
+  LIMIT ?
+`)
+
+/** File ids owned by a user, so their blobs can be unlinked before the rows go. */
+const selectFileIdsByUploader = db.prepare(`
+  SELECT id FROM files WHERE uploader_id = ?
+`)
+
 const insertPrekey = db.prepare(`
   INSERT OR IGNORE INTO one_time_prekeys (id, user_id, public_key)
   VALUES (?, ?, ?)
@@ -578,6 +599,46 @@ export const database = {
 
   deleteUser(userId: string): void {
     deleteUser.run(userId)
+  },
+
+  /**
+   * Deletes accounts inactive since `cutoffSec`, releasing their usernames.
+   *
+   * Every child table cascades (`foreign_keys = ON`), so one delete takes the
+   * account's prekeys, pending messages, file rows, group memberships and
+   * blocks with it. File *blobs* live on disk and do not cascade, so their ids
+   * are collected first and returned for the caller to unlink — a row deleted
+   * without its blob is a file nobody can reach and nobody reclaims.
+   *
+   * `limit` bounds one pass. A sweep that tried to delete everything at once
+   * would hold a write transaction over an unbounded set on a database serving
+   * live traffic; several small passes reach the same place without that.
+   *
+   * Returns what it removed rather than a count, so the caller can unlink blobs
+   * and so the audit line names the usernames that were released.
+   */
+  purgeInactiveUsers(
+    cutoffSec: number,
+    limit: number
+  ): { users: Array<{ id: string; username: string }>; fileIds: string[] } {
+    const candidates = selectInactiveUsers.all(cutoffSec, limit) as Array<{
+      id: string
+      username: string
+    }>
+    if (candidates.length === 0) return { users: [], fileIds: [] }
+
+    const fileIds: string[] = []
+    for (const candidate of candidates) {
+      const rows = selectFileIdsByUploader.all(candidate.id) as Array<{ id: string }>
+      for (const row of rows) fileIds.push(row.id)
+    }
+
+    const removeAll = db.transaction(() => {
+      for (const candidate of candidates) deleteUser.run(candidate.id)
+    })
+    removeAll()
+
+    return { users: candidates, fileIds }
   },
 
   addPrekeys(userId: string, prekeys: Array<{ id: string; publicKey: string }>): void {
