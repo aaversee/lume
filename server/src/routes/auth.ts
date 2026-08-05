@@ -39,8 +39,27 @@ function audit(event: string, details: Record<string, unknown>) {
 
 // === Rate Limiting ==========================================================
 
+/**
+ * Registration is the one endpoint that creates unbounded state.
+ *
+ * Every account is a `users` row plus twenty one-time prekeys, and nothing
+ * prunes them — the table's only real bound today is that Render's free plan
+ * has an ephemeral disk, which is accidental protection rather than a design.
+ *
+ * The window was ten minutes, so one address could mint 180 accounts an hour,
+ * or 4,320 a day. Raised to an hour for the same allowance, cutting that
+ * sixfold while staying generous enough for a shared exit — a café or a campus
+ * behind one NAT can still register thirty people in an hour, which is far more
+ * than any real hour of signups.
+ *
+ * Whether inactive accounts should expire is deliberately *not* decided here.
+ * The server row is a cache and clients re-bind silently, so pruning is safe
+ * mechanically — but it releases the username, and a username someone else can
+ * then claim is an identity question, not a housekeeping one. That belongs to
+ * Securex.
+ */
 const registerRateLimit = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  windowMs: 60 * 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,

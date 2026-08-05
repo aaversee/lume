@@ -6,6 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { t } from "@/lib/i18n";
 import { usePathname, useRouter } from 'next/navigation';
+import { usePrefetchRoutes } from '@/hooks/useRoutePrefetch';
+
+/** Fixed rail destinations. Module-scoped so its identity is stable. */
+const RAIL_ROUTES = ['/chats', '/settings'] as const;
 import { useAuthStore, useChatsStore, useUIStore } from '@/stores';
 import { Avatar } from '@/components/ui';
 import OwnProfileModal from '@/components/modals/OwnProfileModal';
@@ -137,6 +141,9 @@ export default function LeftRail({
   variant?: 'rail' | 'panel';
 }) {
   const router = useRouter();
+  // The rail is on every screen and its destinations never change, so warm both
+  // while the browser is idle rather than at the moment of the click.
+  usePrefetchRoutes(RAIL_ROUTES);
   const pathname = usePathname();
   const userId = useAuthStore((s) => s.userId);
   const username = useAuthStore((s) => s.username);

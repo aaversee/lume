@@ -112,16 +112,34 @@ ranges is what makes the protection real rather than decorative.
 
 ## Known gaps
 
-**Backups.** SQLite on Render's disk has no backup configured. A lost disk means
-lost undelivered messages and every user's server-side record — which, given the
-client holds the keys and the identity, is survivable for the users but is still
-an outage nobody can shorten. Undelivered messages are at most 30 days old, so
-the exposure is bounded, but the user table is not reconstructible.
+**Backups — narrower than it first looks.** Render's free plan has an *ephemeral*
+filesystem, so the database is already reset on every deploy. That is by design,
+not an oversight: LUME is client-authoritative, and a client re-binds its
+existing identity silently on the next unlock, keeping its safety numbers and
+sessions. Backing up a disk that does not survive a restart would be theatre.
+
+What is actually lost on a reset is undelivered messages (at most 30 days old)
+and uploaded files (their own TTL). Both bounded, neither reconstructible.
+
+The real question is therefore not "add backups" but "should server state be
+durable at all" — a paid plan with a mounted disk, at which point backups start
+to matter. That is a cost decision, not an engineering one.
 
 **Metadata.** The relay cannot read messages and does not try to. It does
 necessarily see who talks to whom and when. That is the honest limit of the
 design and worth stating publicly rather than being caught claiming otherwise.
 
-**Account cost.** Registration is free and unmetered, which multiplies any
-per-user limit. It is rate-limited per address; whether that is enough depends on
-whether an attacker with many addresses is in the threat model.
+**Account cost, and the one table without a real bound.** Registration creates a
+`users` row plus twenty one-time prekeys, and nothing prunes them. Every other
+table has a TTL or a cap; this one was counted as "grows only through a user's
+own actions", which is true and beside the point — mass registration is a user
+action too.
+
+The window was tightened from ten minutes to an hour for the same allowance of
+thirty, cutting one address from 4,320 accounts a day to 720. Still generous
+enough for a campus or café behind one NAT.
+
+Whether inactive accounts should expire is left open deliberately. Mechanically
+it is safe — the server row is a cache and clients re-bind silently — but it
+releases the username, and a username someone else can then claim is an identity
+question rather than housekeeping.
