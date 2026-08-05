@@ -17,6 +17,7 @@ import {
   savePreKeyMaterial,
   deriveMasterKeyFromPin,
   savePinHash,
+  resetVaultForNewAccount,
 } from "@/crypto/storage";
 import { generatePreKeyBundle } from "@/crypto/keys";
 import { authApi } from "@/lib/api";
@@ -121,6 +122,12 @@ export default function SetupPage() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
+      // Start from an empty store. Keeping the previous account's records here
+      // reuses the salt, so the same PIN decrypts that account's contacts and
+      // chats into this one — and a different PIN makes them unreadable, which
+      // latches persistence off as an integrity failure.
+      await resetVaultForNewAccount();
+
       const result = await createAccountWithMnemonic(128);
       const generatedIdentity = result.identity;
       mnemonicRef.current = result.mnemonic;

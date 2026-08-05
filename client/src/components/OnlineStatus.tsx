@@ -5,19 +5,24 @@
 
 import { useEffect } from 'react';
 import { useUIStore } from '@/stores';
-import { requestNotificationPermission } from '@/lib/notifications';
-import { loadSettings } from '@/crypto/storage';
 
 /**
- * Отслеживает navigator.onLine и события online/offline.
- * Запрашивает разрешение на Desktop Notifications.
- * Обновляет глобальный UI store.
+ * Tracks navigator.onLine and the online/offline events, and mirrors them into
+ * the UI store.
+ *
+ * It deliberately does NOT ask for notification permission. It used to, from
+ * this effect on mount, and Firefox and Safari refuse a permission request that
+ * does not come from a user gesture — so on those browsers the prompt never
+ * appeared and notifications silently never worked. Chrome allowed it, which is
+ * why it went unnoticed.
+ *
+ * The request belongs to the notifications toggle in settings, which is a real
+ * click and already does it correctly.
  */
 export default function OnlineStatus() {
   useEffect(() => {
     const setOnline = useUIStore.getState().setOnline;
 
-    // Инициализация
     setOnline(navigator.onLine);
 
     const handleOnline = () => setOnline(true);
@@ -25,18 +30,6 @@ export default function OnlineStatus() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Request desktop notification permission only when enabled in settings
-    void (async () => {
-      try {
-        const settings = await loadSettings();
-        if (settings.notifications) {
-          await requestNotificationPermission();
-        }
-      } catch {
-        // ignore
-      }
-    })();
 
     return () => {
       window.removeEventListener('online', handleOnline);

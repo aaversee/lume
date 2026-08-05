@@ -19,8 +19,12 @@
 
 import { authApi, messagesApi } from "@/lib/api";
 import type { GroupData } from "@/lib/api";
-import { encodeRatchetEnvelope, type X3DHInitPayload } from "@/lib/ratchetPayload";
+import {
+  encodeRatchetEnvelope,
+  type X3DHInitPayload,
+} from "@/lib/ratchetPayload";
 import { bundleMatchesTrustedIdentity } from "@/lib/identityPinning";
+import { withSenderLock } from "@/lib/sessionLock";
 import {
   deserializeSession,
   initSenderSession,
@@ -83,99 +87,110 @@ export async function sendGroupMessage(params: {
 
   for (const member of recipients) {
     try {
-      const existing = vaultGetSession(member.user_id);
-      const hadExistingSession = Boolean(existing);
-      let session = existing ? deserializeSession(existing) : null;
-      let x3dhInit: X3DHInitPayload | undefined;
+      // A group message is fanned out over each member's own 1:1 ratchet
+      // session, so it contends with that member's direct chat and with anything
+      // arriving from them. Same lock, same reason as the 1:1 send path.
+      await withSenderLock(member.user_id, async () => {
+        const existing = vaultGetSession(member.user_id);
+        const hadExistingSession = Boolean(existing);
+        let session = existing ? deserializeSession(existing) : null;
+        let x3dhInit: X3DHInitPayload | undefined;
 
-      if (!session) {
-        // First message to this member: X3DH (bundle signature verified) then ratchet.
-        const { data: bundle, error: bundleError } = await authApi.getBundle(
-          member.username,
-        );
-        if (bundleError || !bundle) {
-          throw new Error(bundleError || "Failed to fetch bundle");
-        }
-
-        const ok = verify(
-          decodeBase64(bundle.signedPrekey),
-          decodeBase64(bundle.signedPrekeySignature),
-          bundle.identityKey,
-        );
-        if (!ok) throw new Error("Invalid signed prekey signature");
-
-        const recipientIk = bundle.exchangeIdentityKey || bundle.exchangeKey;
-        if (!recipientIk) {
-          throw new Error("Recipient bundle missing exchange identity key");
-        }
-
-        // Pin to the trusted contact identity when this member is already known,
-        // so a malicious server cannot substitute identities (MITM). SEC-20260621-002.
-        const trustedMember = useContactsStore
-          .getState()
-          .contacts.find((c) => c.id === member.user_id);
-        if (!bundleMatchesTrustedIdentity(bundle.identityKey, recipientIk, trustedMember)) {
-          throw new Error(
-            "Group member identity does not match the trusted contact — aborting (possible MITM)",
+        if (!session) {
+          // First message to this member: X3DH (bundle signature verified) then ratchet.
+          const { data: bundle, error: bundleError } = await authApi.getBundle(
+            member.username,
           );
+          if (bundleError || !bundle) {
+            throw new Error(bundleError || "Failed to fetch bundle");
+          }
+
+          const ok = verify(
+            decodeBase64(bundle.signedPrekey),
+            decodeBase64(bundle.signedPrekeySignature),
+            bundle.identityKey,
+          );
+          if (!ok) throw new Error("Invalid signed prekey signature");
+
+          const recipientIk = bundle.exchangeIdentityKey || bundle.exchangeKey;
+          if (!recipientIk) {
+            throw new Error("Recipient bundle missing exchange identity key");
+          }
+
+          // Pin to the trusted contact identity when this member is already known,
+          // so a malicious server cannot substitute identities (MITM). SEC-20260621-002.
+          const trustedMember = useContactsStore
+            .getState()
+            .contacts.find((c) => c.id === member.user_id);
+          if (
+            !bundleMatchesTrustedIdentity(
+              bundle.identityKey,
+              recipientIk,
+              trustedMember,
+            )
+          ) {
+            throw new Error(
+              "Group member identity does not match the trusted contact — aborting (possible MITM)",
+            );
+          }
+
+          const { sharedSecret, ephemeralPublicKey } = x3dhInitiate(
+            vaultGetExchangeKeyPair(),
+            {
+              identityKey: recipientIk,
+              signingKey: bundle.identityKey,
+              signedPreKey: bundle.signedPrekey,
+              signature: bundle.signedPrekeySignature,
+              oneTimePreKey: bundle.oneTimePrekey,
+            },
+          );
+
+          session = initSenderSession(sharedSecret, bundle.signedPrekey);
+          x3dhInit = {
+            senderIdentityKey: vaultGetPublicKeys()!.exchangePublicKey,
+            senderEphemeralKey: ephemeralPublicKey,
+            recipientOneTimePreKey: bundle.oneTimePrekey ?? null,
+            // Tell the recipient which SPK we used so they can respond with the
+            // matching key during its grace window. SEC-20260621-022.
+            recipientSignedPreKey: bundle.signedPrekey,
+          };
+        }
+        if (!session) {
+          throw new Error("Failed to initialize ratchet session");
         }
 
-        const { sharedSecret, ephemeralPublicKey } = x3dhInitiate(
-          vaultGetExchangeKeyPair(),
-          {
-            identityKey: recipientIk,
-            signingKey: bundle.identityKey,
-            signedPreKey: bundle.signedPrekey,
-            signature: bundle.signedPrekeySignature,
-            oneTimePreKey: bundle.oneTimePrekey,
-          },
-        );
+        const encrypted = ratchetEncrypt(session, plaintextBytes);
+        const encryptedPayload = encodeRatchetEnvelope({
+          encrypted,
+          timestamp,
+          ...(x3dhInit ? { x3dh: x3dhInit } : {}),
+        });
 
-        session = initSenderSession(sharedSecret, bundle.signedPrekey);
-        x3dhInit = {
-          senderIdentityKey: vaultGetPublicKeys()!.exchangePublicKey,
-          senderEphemeralKey: ephemeralPublicKey,
-          recipientOneTimePreKey: bundle.oneTimePrekey ?? null,
-          // Tell the recipient which SPK we used so they can respond with the
-          // matching key during its grace window. SEC-20260621-022.
-          recipientSignedPreKey: bundle.signedPrekey,
-        };
-      }
-      if (!session) {
-        throw new Error("Failed to initialize ratchet session");
-      }
+        const { error: sendError } = await messagesApi.send({
+          senderId,
+          recipientId: member.user_id,
+          encryptedPayload,
+        });
 
-      const encrypted = ratchetEncrypt(session, plaintextBytes);
-      const encryptedPayload = encodeRatchetEnvelope({
-        encrypted,
-        timestamp,
-        ...(x3dhInit ? { x3dh: x3dhInit } : {}),
-      });
-
-      const { error: sendError } = await messagesApi.send({
-        senderId,
-        recipientId: member.user_id,
-        encryptedPayload,
-      });
-
-      if (sendError) {
-        // For an already-established session, keep the advanced state to avoid
-        // potential key reuse on ambiguous transport failures.
-        // For first-contact X3DH, do not persist on explicit send failure:
-        // otherwise retries omit X3DH and become undecryptable for recipients
-        // who never received the initial handshake message.
-        if (hadExistingSession) {
+        if (sendError) {
+          // For an already-established session, keep the advanced state to avoid
+          // potential key reuse on ambiguous transport failures.
+          // For first-contact X3DH, do not persist on explicit send failure:
+          // otherwise retries omit X3DH and become undecryptable for recipients
+          // who never received the initial handshake message.
+          if (hadExistingSession) {
+            useSessionsStore
+              .getState()
+              .upsertSession(member.user_id, serializeSession(session));
+          }
+          failed++;
+        } else {
           useSessionsStore
             .getState()
             .upsertSession(member.user_id, serializeSession(session));
+          sent++;
         }
-        failed++;
-      } else {
-        useSessionsStore
-          .getState()
-          .upsertSession(member.user_id, serializeSession(session));
-        sent++;
-      }
+      });
     } catch {
       failed++;
     }

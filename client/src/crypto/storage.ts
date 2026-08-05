@@ -1093,6 +1093,34 @@ export async function deleteKeys(): Promise<void> {
 }
 
 /**
+ * Clears every record belonging to the account currently on this device, so a
+ * newly created or restored account starts from nothing.
+ *
+ * Without this, setup keeps the previous account's store and the encryption salt
+ * is reused. Two distinct failures follow, both reported from a real device:
+ *
+ *   - with the SAME pin the derived master key is identical, so the previous
+ *     account's contacts and chats decrypt straight into the new one — one
+ *     person's conversations shown under another's login;
+ *   - with a different pin those records stop opening and the first loader hits
+ *     `raiseIntegrityFailure`, which latches persistence off for the session and
+ *     surfaces as "не удалось прочитать локальные данные".
+ *
+ * `deleteKeys()` is not enough (it leaves contacts, chats, settings and the salt)
+ * and `panicWipe()` is too much: it latches `wipeInProgress`, which would then
+ * discard everything the new account writes.
+ */
+export async function resetVaultForNewAccount(): Promise<void> {
+  for (const key of Object.values(STORAGE_KEYS)) {
+    await del(key);
+  }
+  // A fresh account gets a fresh salt; clearing the record above is what forces
+  // `getOrCreateEncryptionSalt` to mint one instead of reusing the old.
+  clearCachedMasterKey();
+  integrityFailure = false;
+}
+
+/**
  * Удаляет контакт и его сессию
  */
 export async function deleteContact(

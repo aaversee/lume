@@ -10,8 +10,7 @@
     "validate": "cd server && npx tsc --noEmit && cd ../client && npx tsc --noEmit",
     "validate:server": "cd server && npx tsc --noEmit",
     "validate:client": "cd client && npx tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "npm --prefix server test && npm --prefix client test",
     "test:e2e": "playwright test",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:css": "node scripts/check-css-vars.mjs"
@@ -23,7 +22,6 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0",
-    "vitest": "^1.6.0"
+    "@types/node": "^20.0.0"
   }
 }

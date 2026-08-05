@@ -26,16 +26,38 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
+ * Whether the server has push configured, remembered for this page load.
+ *
+ * A deployment without VAPID keys answers `/push/vapid-key` with 503, which is
+ * correct — the feature is off. But the browser logs every non-2xx response as a
+ * red console error whether or not the code handles it, and we ask on each
+ * login, so a perfectly healthy self-hosted instance filled its console with
+ * failures. Asking once per page load is enough: the answer cannot change
+ * without the server restarting.
+ *
+ * `null` means "not asked yet".
+ */
+let cachedVapidKey: string | null | undefined;
+
+/**
  * Fetch the VAPID public key from the server.
  * Returns null if push is not configured on the server.
  */
 async function getVapidKey(): Promise<string | null> {
+  if (cachedVapidKey !== undefined) return cachedVapidKey;
   try {
     const res = await fetch(`${API_BASE}/push/vapid-key`);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // 503 is the documented "push not configured" answer; anything else is
+      // still a reason to stop asking for the rest of this page load.
+      cachedVapidKey = null;
+      return null;
+    }
     const data = (await res.json()) as { vapidPublicKey?: string };
-    return data.vapidPublicKey || null;
+    cachedVapidKey = data.vapidPublicKey || null;
+    return cachedVapidKey;
   } catch {
+    cachedVapidKey = null;
     return null;
   }
 }

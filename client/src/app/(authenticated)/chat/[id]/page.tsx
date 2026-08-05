@@ -53,6 +53,7 @@ import { wsClient } from "@/lib/websocket";
 import { decodeBase64 } from "tweetnacl-util";
 import { verify } from "@/crypto/keys";
 import { encodeRatchetEnvelope } from "@/lib/ratchetPayload";
+import { withSenderLock } from "@/lib/sessionLock";
 import { bundleMatchesTrustedIdentity } from "@/lib/identityPinning";
 import {
   deserializeSession,
@@ -351,8 +352,7 @@ export default function ChatPage({ params }: ChatPageProps) {
   const handleSend = async () => {
     const hasText = messageText.trim().length > 0;
     const hasAttachment = !!pendingAttachment;
-    if ((!hasText && !hasAttachment) || !contact || !userId || !hasKeys)
-      return;
+    if ((!hasText && !hasAttachment) || !contact || !userId || !hasKeys) return;
 
     setSending(true);
 
@@ -395,8 +395,15 @@ export default function ChatPage({ params }: ChatPageProps) {
           key: encrypted.key,
           nonce: encrypted.nonce,
         };
-        vaultSetAttachmentKey(uploadResult.fileId, encrypted.key, encrypted.nonce);
-        void saveAttachmentKeys(vaultGetAllAttachmentKeys(), vaultGetMasterKey());
+        vaultSetAttachmentKey(
+          uploadResult.fileId,
+          encrypted.key,
+          encrypted.nonce,
+        );
+        void saveAttachmentKeys(
+          vaultGetAllAttachmentKeys(),
+          vaultGetMasterKey(),
+        );
       } catch (err) {
         if (process.env.NODE_ENV !== "production")
           console.error("File upload error:", err);
@@ -457,104 +464,119 @@ export default function ChatPage({ params }: ChatPageProps) {
       });
       const plaintextBytes = new TextEncoder().encode(plaintext);
 
-      const existing = contactId ? vaultGetSession(contactId) : undefined;
+      // Everything that reads, advances and stores the ratchet session runs
+      // under the same per-contact lock the receive path uses. Without it a
+      // message arriving mid-send overwrote the DH ratchet step it had just
+      // committed, and two quick sends shared a message number — in both cases
+      // a message is lost and nothing reports it. The attachment upload above is
+      // deliberately outside the lock: it can take a while, and it touches no
+      // session state.
+      await withSenderLock(contact.id, async () => {
+        const existing = contactId ? vaultGetSession(contactId) : undefined;
 
-      let session = existing ? deserializeSession(existing) : null;
-      let x3dhInit:
-        | {
-            senderIdentityKey: string;
-            senderEphemeralKey: string;
-            recipientOneTimePreKey?: string | null;
-            recipientSignedPreKey?: string;
-          }
-        | undefined;
+        let session = existing ? deserializeSession(existing) : null;
+        let x3dhInit:
+          | {
+              senderIdentityKey: string;
+              senderEphemeralKey: string;
+              recipientOneTimePreKey?: string | null;
+              recipientSignedPreKey?: string;
+            }
+          | undefined;
 
-      if (!session) {
-        // First message to this contact: do X3DH (bundle is signed) and start a ratchet session.
-        const { data: bundle, error: bundleError } = await authApi.getBundle(
-          contact.username,
-        );
-        if (bundleError || !bundle) {
-          throw new Error(bundleError || "Failed to fetch bundle");
-        }
-
-        const ok = verify(
-          decodeBase64(bundle.signedPrekey),
-          decodeBase64(bundle.signedPrekeySignature),
-          bundle.identityKey,
-        );
-        if (!ok) {
-          throw new Error("Invalid signed prekey signature");
-        }
-
-        const recipientIk = bundle.exchangeIdentityKey || bundle.exchangeKey;
-        if (!recipientIk) {
-          throw new Error("Recipient bundle missing exchange identity key");
-        }
-
-        // Pin the bundle to the already-trusted contact identity so a malicious
-        // server cannot substitute a different identity (MITM). SEC-20260621-002.
-        if (!bundleMatchesTrustedIdentity(bundle.identityKey, recipientIk, contact)) {
-          throw new Error(
-            "Recipient identity does not match the trusted contact — aborting (possible MITM)",
+        if (!session) {
+          // First message to this contact: do X3DH (bundle is signed) and start a ratchet session.
+          const { data: bundle, error: bundleError } = await authApi.getBundle(
+            contact.username,
           );
+          if (bundleError || !bundle) {
+            throw new Error(bundleError || "Failed to fetch bundle");
+          }
+
+          const ok = verify(
+            decodeBase64(bundle.signedPrekey),
+            decodeBase64(bundle.signedPrekeySignature),
+            bundle.identityKey,
+          );
+          if (!ok) {
+            throw new Error("Invalid signed prekey signature");
+          }
+
+          const recipientIk = bundle.exchangeIdentityKey || bundle.exchangeKey;
+          if (!recipientIk) {
+            throw new Error("Recipient bundle missing exchange identity key");
+          }
+
+          // Pin the bundle to the already-trusted contact identity so a malicious
+          // server cannot substitute a different identity (MITM). SEC-20260621-002.
+          if (
+            !bundleMatchesTrustedIdentity(
+              bundle.identityKey,
+              recipientIk,
+              contact,
+            )
+          ) {
+            throw new Error(
+              "Recipient identity does not match the trusted contact — aborting (possible MITM)",
+            );
+          }
+
+          const { sharedSecret, ephemeralPublicKey } = x3dhInitiate(
+            vaultGetExchangeKeyPair(),
+            {
+              identityKey: recipientIk,
+              signingKey: bundle.identityKey,
+              signedPreKey: bundle.signedPrekey,
+              signature: bundle.signedPrekeySignature,
+              oneTimePreKey: bundle.oneTimePrekey,
+            },
+          );
+
+          session = initSenderSession(sharedSecret, bundle.signedPrekey);
+          x3dhInit = {
+            senderIdentityKey: vaultGetPublicKeys()!.exchangePublicKey,
+            senderEphemeralKey: ephemeralPublicKey,
+            recipientOneTimePreKey: bundle.oneTimePrekey ?? null,
+            // Tell the recipient which SPK we used so they can respond with the
+            // matching key during its grace window. SEC-20260621-022.
+            recipientSignedPreKey: bundle.signedPrekey,
+          };
         }
 
-        const { sharedSecret, ephemeralPublicKey } = x3dhInitiate(
-          vaultGetExchangeKeyPair(),
-          {
-            identityKey: recipientIk,
-            signingKey: bundle.identityKey,
-            signedPreKey: bundle.signedPrekey,
-            signature: bundle.signedPrekeySignature,
-            oneTimePreKey: bundle.oneTimePrekey,
-          },
-        );
-
-        session = initSenderSession(sharedSecret, bundle.signedPrekey);
-        x3dhInit = {
-          senderIdentityKey: vaultGetPublicKeys()!.exchangePublicKey,
-          senderEphemeralKey: ephemeralPublicKey,
-          recipientOneTimePreKey: bundle.oneTimePrekey ?? null,
-          // Tell the recipient which SPK we used so they can respond with the
-          // matching key during its grace window. SEC-20260621-022.
-          recipientSignedPreKey: bundle.signedPrekey,
-        };
-      }
-
-      const encrypted = ratchetEncrypt(session, plaintextBytes);
-      const encryptedPayload = encodeRatchetEnvelope({
-        encrypted,
-        timestamp,
-        selfDestruct: selfDestructTime,
-        ...(x3dhInit ? { x3dh: x3dhInit } : {}),
-      });
-
-      const { data, error } = await messagesApi.send({
-        senderId: userId,
-        recipientId: contact.id,
-        encryptedPayload,
-      });
-
-      if (error) {
-        // Same desync guard as group fan-out (lib/groupMessaging.ts): never
-        // persist a fresh X3DH session on a failed first send — a retry must
-        // re-send the handshake, otherwise the recipient can never decrypt.
-        // For an already-established session, keep the advance to avoid reusing
-        // a message key on an ambiguous transport failure.
-        if (contactId && existing) {
-          upsertSession(contactId, serializeSession(session));
-        }
-        updateMessage(chatId, messageId, { status: "failed" });
-      } else {
-        if (contactId) {
-          upsertSession(contactId, serializeSession(session));
-        }
-        clearCryptoBanner();
-        updateMessage(chatId, messageId, {
-          status: data?.delivered ? "delivered" : "sent",
+        const encrypted = ratchetEncrypt(session, plaintextBytes);
+        const encryptedPayload = encodeRatchetEnvelope({
+          encrypted,
+          timestamp,
+          selfDestruct: selfDestructTime,
+          ...(x3dhInit ? { x3dh: x3dhInit } : {}),
         });
-      }
+
+        const { data, error } = await messagesApi.send({
+          senderId: userId,
+          recipientId: contact.id,
+          encryptedPayload,
+        });
+
+        if (error) {
+          // Same desync guard as group fan-out (lib/groupMessaging.ts): never
+          // persist a fresh X3DH session on a failed first send — a retry must
+          // re-send the handshake, otherwise the recipient can never decrypt.
+          // For an already-established session, keep the advance to avoid reusing
+          // a message key on an ambiguous transport failure.
+          if (contactId && existing) {
+            upsertSession(contactId, serializeSession(session));
+          }
+          updateMessage(chatId, messageId, { status: "failed" });
+        } else {
+          if (contactId) {
+            upsertSession(contactId, serializeSession(session));
+          }
+          clearCryptoBanner();
+          updateMessage(chatId, messageId, {
+            status: data?.delivered ? "delivered" : "sent",
+          });
+        }
+      });
     } catch (sendError) {
       if (process.env.NODE_ENV !== "production")
         console.error("Send message error:", sendError);
@@ -579,7 +601,9 @@ export default function ChatPage({ params }: ChatPageProps) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // The send button is disabled while a send is in flight, but the textarea is
+    // not — so Enter was the one way to start a second send over the first.
+    if (e.key === "Enter" && !e.shiftKey && !sending) {
       e.preventDefault();
       void handleSend();
     }
@@ -636,9 +660,7 @@ export default function ChatPage({ params }: ChatPageProps) {
   if (isPanicMode) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-[var(--text-secondary)] text-sm">
-          No messages
-        </p>
+        <p className="text-[var(--text-secondary)] text-sm">No messages</p>
       </div>
     );
   }
@@ -647,9 +669,7 @@ export default function ChatPage({ params }: ChatPageProps) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[var(--text-secondary)] text-sm">
-            Chat not found
-          </p>
+          <p className="text-[var(--text-secondary)] text-sm">Chat not found</p>
           <button
             onClick={() => router.push("/chats")}
             className="mt-4 apple-button-secondary px-6"

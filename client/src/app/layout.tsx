@@ -8,6 +8,7 @@ import { Space_Grotesk, Manrope } from "next/font/google";
 import "./globals.css";
 import StatusBanner from "@/components/StatusBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Dedication from "@/components/Dedication";
 import OnlineStatus from "@/components/OnlineStatus";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import LocaleLang from "@/components/LocaleLang";
@@ -47,8 +48,16 @@ export const metadata: Metadata = {
     title: "LUME",
   },
   icons: {
-    icon: "/lume-icon.png",
-    shortcut: "/lume-icon.png",
+    // The tab icon is the SVG: it scales to whatever size the browser asks for
+    // and carries its own light/dark rule. The .ico is the fallback for anything
+    // that will not take an SVG, and the PNG is the home-screen tile, which needs
+    // a filled background — a transparent mark disappears once iOS or Android
+    // composites it onto their own.
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "64x64" },
+    ],
+    shortcut: "/favicon.ico",
     apple: "/lume-icon.png",
   },
 };
@@ -82,6 +91,7 @@ export default async function RootLayout({
           <LocaleLang />
           <ServiceWorkerRegistration />
           <OnlineStatus />
+          <Dedication />
           <ErrorBoundary>
             <StatusBanner />
             <div className="flex-1 min-h-0">{children}</div>

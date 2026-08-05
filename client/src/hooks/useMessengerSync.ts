@@ -13,6 +13,7 @@ import { notifyIncomingMessage } from "@/lib/notifications";
 import { subscribeToPush } from "@/lib/pushSubscription";
 import { playMessageSound, initSoundPreference } from "@/lib/sounds";
 import { reconcileSettingsConsistency } from "@/lib/settingsConsistency";
+import { withSenderLock } from "@/lib/sessionLock";
 import {
   useAuthStore,
   useContactsStore,
@@ -118,19 +119,9 @@ function zeroSessionKeys(s: DoubleRatchetSession): void {
 // Track which chatIds contain self-destruct messages to avoid scanning all chats
 const selfDestructChatIds = new Set<string>();
 
-// Per-sender lock to prevent concurrent ratchet session mutations
-const senderLocks = new Map<string, Promise<unknown>>();
-function withSenderLock<T>(senderId: string, fn: () => Promise<T>): Promise<T> {
-  const prev = senderLocks.get(senderId) ?? Promise.resolve();
-  const next = prev.then(fn, fn);
-  senderLocks.set(senderId, next);
-  next.finally(() => {
-    if (senderLocks.get(senderId) === next) {
-      senderLocks.delete(senderId);
-    }
-  });
-  return next;
-}
+// Per-sender lock to prevent concurrent ratchet session mutations. Moved to
+// lib/sessionLock.ts so the chat screen's send path shares the same map — while
+// it lived here, only the receive side was ever protected.
 
 function loadBlockedIds(): string[] {
   try {
@@ -265,8 +256,7 @@ async function appendIncomingMessage(params: {
   let timestamp = fallbackTimestamp;
   let selfDestructSeconds: number | null | undefined = null;
   let replyTo:
-    | { messageId: string; content: string; senderId: string }
-    | undefined;
+    { messageId: string; content: string; senderId: string } | undefined;
   let attachment: MessageAttachment | undefined;
   let groupId: string | undefined;
 
@@ -307,7 +297,12 @@ async function appendIncomingMessage(params: {
       const trustedSender = useContactsStore
         .getState()
         .contacts.find((c) => c.id === senderId);
-      if (!inboundSenderMatchesTrustedIdentity(x3dh.senderIdentityKey, trustedSender)) {
+      if (
+        !inboundSenderMatchesTrustedIdentity(
+          x3dh.senderIdentityKey,
+          trustedSender,
+        )
+      ) {
         reportCryptoIssue(
           "Sender identity does not match your trusted contact — message rejected (possible MITM).",
         );
@@ -643,8 +638,7 @@ export function useMessengerSync() {
   }, [hydrated, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!hydrated || !isAuthenticated || !userId || !hasKeys)
-      return undefined;
+    if (!hydrated || !isAuthenticated || !userId || !hasKeys) return undefined;
 
     let isMounted = true;
     let saveChatsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1034,7 +1028,9 @@ export function useMessengerSync() {
             // generic over total silence, so the user is still alerted.
             // isHidden is read from the same chats store the list panel uses.
             // SEC-20260721-019.
-            const senderChat = chatsNow.find((c) => c.contactId === data.senderId);
+            const senderChat = chatsNow.find(
+              (c) => c.contactId === data.senderId,
+            );
             const hiddenLocked =
               !!senderChat?.isHidden && !useUIStore.getState().showHiddenChats;
             const settings = await loadSettings().catch(() => null);

@@ -20,6 +20,20 @@ services:
         generateValue: true
       - key: CLIENT_ORIGIN
         sync: false
+      # Web Push. Optional: without these the server answers /push/vapid-key with
+      # 503 "not configured" and push is simply off — which is a working state,
+      # not a fault. They are declared here so the deployment shows what is
+      # missing rather than leaving it to be discovered from a console error.
+      #
+      # Generate a pair with `npx web-push generate-vapid-keys` and set them in
+      # the Render dashboard. `sync: false` keeps the values out of this file —
+      # the private key is a secret and does not belong in the repository.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
       # NOTE: the free plan has an ephemeral filesystem (no persistent disk), so
       # this SQLite DB is reset on every deploy/restart. Acceptable by design —
       # LUME is client-authoritative: clients transparently re-bind their identity

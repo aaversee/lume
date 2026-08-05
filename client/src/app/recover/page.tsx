@@ -17,6 +17,7 @@ import {
   savePreKeyMaterial,
   deriveMasterKeyFromPin,
   savePinHash,
+  resetVaultForNewAccount,
 } from "@/crypto/storage";
 import { useAuthStore } from "@/stores";
 import { vaultSetAuth, vaultClear } from "@/crypto/keyVault";
@@ -76,6 +77,12 @@ export default function RecoverPage() {
     try {
       const trimmed = mnemonic.trim().toLowerCase();
       const identity = await recoverIdentityFromMnemonic(trimmed);
+
+      // Recovery replaces whatever account this device held, so its records go
+      // first. Left in place they would be re-read under the recovered account:
+      // with the same PIN the old contacts and chats decrypt into it, and with a
+      // different PIN they fail to open and latch persistence off.
+      await resetVaultForNewAccount();
 
       // Derive master key from PIN early — needed for vault before API calls
       const masterKey = await deriveMasterKeyFromPin(pin);

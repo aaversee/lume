@@ -30,7 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
-    "uuid": "^14.0.0",
+    "uuid": "^14.0.1",
     "web-push": "^3.6.7",
     "ws": "^8.21.0",
     "zod": "^4.3.6"
@@ -61,6 +61,8 @@
     "vitest": "^4.1.8"
   },
   "overrides": {
-    "vite": "^8.0.5"
+    "vite": "^8.0.5",
+    "uuid": "$uuid",
+    "esbuild": "^0.28.1"
   }
 }
