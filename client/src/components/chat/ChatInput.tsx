@@ -120,6 +120,8 @@ export default function ChatInput({
       <div className="flex items-end gap-3">
         <div className="flex-1">
           <textarea
+            id="message-input"
+            name="message"
             value={messageText}
             onChange={(e) => onMessageChange(e.target.value)}
             onKeyDown={onKeyDown}
@@ -135,6 +137,8 @@ export default function ChatInput({
           <>
             <input
               ref={fileInputRef}
+              id="chat-attachment"
+              name="chat-attachment"
               type="file"
               onChange={handleFileSelect}
               accept="image/*,.pdf,.doc,.docx,.txt,.zip"

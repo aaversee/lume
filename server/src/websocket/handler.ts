@@ -153,6 +153,23 @@ export function initWebSocket(wss: WebSocketServer): void {
   wss.on('connection', (ws: AuthenticatedWebSocket, req: IncomingMessage) => {
     ws.isAlive = true
 
+    /**
+     * Close with a code the client can actually read.
+     *
+     * `close()` only queues the frame; `terminate()` destroys the socket at
+     * once, so calling them back to back loses the code and the client sees a
+     * bare 1006 — indistinguishable from the network dying. The delay lets the
+     * frame flush. SEC-20260805-004.
+     */
+    const abort = (code: number, reason: string) => {
+      ws.close(code, reason)
+      setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
+          ws.terminate()
+        }
+      }, 1000)
+    }
+
     if (process.env.NODE_ENV === 'development' && process.env.WS_DEV_FORCE_CLOSE_CODE) {
       const forceCode = parseInt(process.env.WS_DEV_FORCE_CLOSE_CODE, 10)
       if (!Number.isNaN(forceCode)) {
@@ -170,9 +187,7 @@ export function initWebSocket(wss: WebSocketServer): void {
     const validTimestamps = timestamps.filter(t => now - t < 60_000)
 
     if (validTimestamps.length >= 10) {
-      ws.close(4006, 'Rate limit exceeded')
-      ws.terminate()
-      return
+      return abort(4006, 'Rate limit exceeded')
     }
 
     validTimestamps.push(now)
@@ -184,9 +199,7 @@ export function initWebSocket(wss: WebSocketServer): void {
     if (!skipOriginCheck) {
       const origin = (req.headers.origin as string | undefined) || ''
       if (!isOriginAllowed(origin, ORIGIN_ALLOWLIST)) {
-        ws.close(4007, 'Origin not allowed')
-        ws.terminate()
-        return
+        return abort(4007, 'Origin not allowed')
       }
     }
 
@@ -205,15 +218,6 @@ export function initWebSocket(wss: WebSocketServer): void {
           token = part.slice(5)
         }
       }
-    }
-
-    const abort = (code: number, reason: string) => {
-      ws.close(code, reason)
-      setTimeout(() => {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
-          ws.terminate()
-        }
-      }, 1000)
     }
 
     if (!hasLumeProtocol) {

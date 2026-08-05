@@ -69,14 +69,17 @@ WHAT THE RELAY STORED (this is all it ever sees):
 
 ## Security
 
+Security review is a separate, adversarial role, kept out of this snapshot.
+Implementation does not sign off on its own security.
+
 If you find a vulnerability, please report it privately rather than opening a
 public issue.
 
 ## Licence
 
-This repository is **source-available for viewing only**, under the
-[LICENSE](LICENSE). You may read and reference the
-source, but running, copying, modifying, or distributing it requires a separate
-written licence. This is not an open-source or free-software licence.
+LUME is source-available under the [LICENSE](LICENSE).
+You may read and reference the source, but running, copying, modifying, or
+distributing it requires a separate written licence. This is not an open-source
+or free-software licence.
 
 Third-party dependencies and their licences: [`LEGAL`](LEGAL).

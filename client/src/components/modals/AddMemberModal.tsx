@@ -93,6 +93,8 @@ export default function AddMemberModal({
               </svg>
             </span>
             <input
+              id="add-member-search"
+              name="add-member-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("modal.group.searchContacts")}

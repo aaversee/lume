@@ -576,6 +576,8 @@ export default function GroupView({ group }: GroupViewProps) {
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <textarea
+                  id="group-message-input"
+                  name="group-message"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -590,6 +592,8 @@ export default function GroupView({ group }: GroupViewProps) {
               </div>
               <input
                 ref={fileInputRef}
+                id="group-attachment"
+                name="group-attachment"
                 type="file"
                 onChange={handleFileSelect}
                 accept="image/*,.pdf,.doc,.docx,.txt,.zip"

@@ -41,7 +41,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
-      router.push("/");
+      router.replace("/");
     }
   }, [hydrated, isAuthenticated, router]);
 

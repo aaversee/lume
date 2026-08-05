@@ -53,7 +53,7 @@ export default function InvitePage() {
     if (!isAuthenticated || !vaultHasKeys()) {
       // Store token for after login
       sessionStorage.setItem("lume:pending-invite", token);
-      router.push("/");
+      router.replace("/");
       return;
     }
 

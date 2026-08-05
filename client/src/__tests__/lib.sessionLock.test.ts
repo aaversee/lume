@@ -109,3 +109,58 @@ describe("withSenderLock", () => {
     ).rejects.toThrow("boom");
   });
 });
+
+describe("cross-tab serialisation", () => {
+  it("uses Web Locks when the platform provides them", async () => {
+    // The point of SEC-20260805-003: tabs of one origin share the store, so a
+    // module-scoped promise chain leaves the race reachable between them. Only
+    // navigator.locks serialises across contexts.
+    const requested: string[] = [];
+    const real = navigator.locks;
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: {
+        request: (name: string, fn: () => Promise<unknown>) => {
+          requested.push(name);
+          return fn();
+        },
+      },
+    });
+
+    try {
+      await withSenderLock("contact-x", async () => "done");
+    } finally {
+      Object.defineProperty(navigator, "locks", { configurable: true, value: real });
+    }
+
+    // Keyed per contact, not one global lock — otherwise every conversation
+    // would queue behind the slowest network call in any other conversation.
+    expect(requested).toEqual(["lume-ratchet-contact-x"]);
+  });
+
+  it("still serialises when Web Locks is unavailable", async () => {
+    const real = navigator.locks;
+    Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+
+    let active = 0;
+    let maxActive = 0;
+    const task = async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 5));
+      active--;
+    };
+
+    try {
+      await Promise.all([
+        withSenderLock("contact-y", task),
+        withSenderLock("contact-y", task),
+        withSenderLock("contact-y", task),
+      ]);
+    } finally {
+      Object.defineProperty(navigator, "locks", { configurable: true, value: real });
+    }
+
+    expect(maxActive).toBe(1);
+  });
+});

@@ -124,6 +124,8 @@ export default function CreateGroupModal({
                 </svg>
               </span>
               <input
+                id="create-group-search"
+                name="create-group-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("modal.group.searchContacts")}

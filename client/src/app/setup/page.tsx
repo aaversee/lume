@@ -197,9 +197,9 @@ export default function SetupPage() {
       const pendingInvite = sessionStorage.getItem("lume:pending-invite");
       if (pendingInvite) {
         sessionStorage.removeItem("lume:pending-invite");
-        router.push(`/invite/${pendingInvite}`);
+        router.replace(`/invite/${pendingInvite}`);
       } else {
-        router.push("/chats");
+        router.replace("/chats");
       }
     }, 1800);
   };

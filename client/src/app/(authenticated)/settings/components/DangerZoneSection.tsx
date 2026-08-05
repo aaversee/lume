@@ -50,7 +50,7 @@ export default function DangerZoneSection() {
 
       await panicWipe();
       useAuthStore.getState().clearAuth();
-      router.push("/");
+      router.replace("/");
     } catch {
       setDeleteError(t("settings.danger.verificationFailed"));
     } finally {
@@ -81,7 +81,10 @@ export default function DangerZoneSection() {
             {t("settings.danger.warning")}
           </p>
           <input
+            id="delete-account-pin"
+            name="delete-account-pin"
             type="password"
+            autoComplete="off"
             value={deletePin}
             onChange={(e) => setDeletePin(e.target.value)}
             placeholder={t("settings.danger.pinPlaceholder")}

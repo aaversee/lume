@@ -471,6 +471,8 @@ export default function ChatListPanel({
               </svg>
             </span>
             <input
+              id="chat-search"
+              name="chat-search"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={activeTab === 'chats' ? t("chatList.searchChats") : t("chatList.searchGroups")}

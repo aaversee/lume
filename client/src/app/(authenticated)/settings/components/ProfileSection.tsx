@@ -204,6 +204,8 @@ export default function ProfileSection() {
           ) : null}
           <input
             ref={fileInputRef}
+            id="avatar-file"
+            name="avatar-file"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             className="hidden"
@@ -214,10 +216,15 @@ export default function ProfileSection() {
         {/* Name fields */}
         <div className="flex-1 min-w-0 space-y-3">
           <div>
-            <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">
+            <label
+              htmlFor="display-name"
+              className="text-xs font-medium text-[var(--text-secondary)] mb-1 block"
+            >
               {t("settings.profile.displayName")}
             </label>
             <input
+              id="display-name"
+              name="display-name"
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -244,9 +251,9 @@ export default function ProfileSection() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">
+            <p className="text-xs font-medium text-[var(--text-secondary)] mb-1">
               {t("settings.profile.username")}
-            </label>
+            </p>
             <p className="text-sm text-[var(--text-muted)] font-medium">
               {!discoverable ? t("settings.profile.usernameHidden") : `@${username ?? "unknown"}`}
             </p>

@@ -42,7 +42,10 @@ export default function BackupModal({
           {t("modal.backup.hint")}
         </p>
         <input
+          id="backup-pin"
+          name="backup-pin"
           type="password"
+          autoComplete="off"
           value={backupPin}
           onChange={(e) => setBackupPin(e.target.value)}
           placeholder={t("modal.backup.pinPlaceholder")}
@@ -94,6 +97,8 @@ export default function BackupModal({
         <div className="space-y-2">
           <input
             ref={fileInputRef}
+            id="backup-file"
+            name="backup-file"
             type="file"
             accept=".bin"
             className="hidden"

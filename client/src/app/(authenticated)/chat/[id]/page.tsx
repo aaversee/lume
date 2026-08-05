@@ -245,14 +245,14 @@ export default function ChatPage({ params }: ChatPageProps) {
   useEffect(() => {
     if (!hydrated || !chat) return;
     if (chat.isHidden && !showHiddenChats) {
-      router.push("/chats");
+      router.replace("/chats");
     }
   }, [hydrated, chat, showHiddenChats, router]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!userId || !hasKeys) {
-      router.push("/unlock");
+      router.replace("/unlock");
     }
   }, [hydrated, userId, hasKeys, router]);
 
@@ -620,7 +620,7 @@ export default function ChatPage({ params }: ChatPageProps) {
     deleteSession(contactId);
     removeContact(contactId);
     setShowProfile(false);
-    router.push("/chats");
+    router.replace("/chats");
   };
 
   const handleHideChat = () => {
@@ -629,7 +629,7 @@ export default function ChatPage({ params }: ChatPageProps) {
     if (nextHidden) {
       setShowHiddenChats(false);
       setShowProfile(false);
-      router.push("/chats");
+      router.replace("/chats");
     }
   };
 

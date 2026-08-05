@@ -1195,6 +1195,15 @@ or, if the group was deleted:
 
 **Max connections per user:** 5. When exceeded, the oldest connection is closed with code `4005`.
 
+**Origin is required in production.** The handshake is checked against the
+`CLIENT_ORIGIN` allowlist, and an absent `Origin` is never on it. Browsers attach
+the header themselves; **Node, React Native and anything else must set it
+explicitly**, or the connection is refused with `4007`.
+
+This is worth stating because the failure is easy to misread: a client that sends
+no `Origin` sees the connection die shortly after opening, which looks like an
+idle timeout rather than a rejection.
+
 ### Authentication
 
 WebSocket authentication uses the `Sec-WebSocket-Protocol` header with two sub-protocols:

@@ -629,7 +629,7 @@ export function useMessengerSync() {
     (async () => {
       const exists = await hasAccount();
       if (!active) return;
-      router.push(exists ? "/unlock" : "/");
+      router.replace(exists ? "/unlock" : "/");
     })();
 
     return () => {
@@ -832,7 +832,7 @@ export function useMessengerSync() {
         if (error || !data) {
           if (error === "User not found") {
             clearAuth();
-            router.push("/");
+            router.replace("/");
             return;
           }
 

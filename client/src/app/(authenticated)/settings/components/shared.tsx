@@ -27,7 +27,7 @@ export function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-4 py-3 cursor-pointer select-none">
+    <div className="flex items-center justify-between gap-4 py-3 select-none">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[var(--text-primary)]">
           {label}
@@ -65,6 +65,6 @@ export function ToggleRow({
           `}
         />
       </button>
-    </label>
+    </div>
   );
 }

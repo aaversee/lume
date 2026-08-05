@@ -192,7 +192,7 @@ export default function RecoverPage() {
       setPin("");
       setPinConfirm("");
       setAuth(resolvedUserId, resolvedUsername);
-      router.push("/chats");
+      router.replace("/chats");
     } catch (recoverError) {
       vaultClear();
       if (process.env.NODE_ENV !== "production")

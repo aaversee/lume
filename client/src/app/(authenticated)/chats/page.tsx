@@ -78,7 +78,7 @@ export default function ChatsPage() {
   // Auth guard — redirect in useEffect to avoid render-phase side effects.
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
-      router.push("/");
+      router.replace("/");
     }
   }, [hydrated, isAuthenticated, router]);
 

@@ -58,7 +58,7 @@ export default function UnlockPage() {
     async function check() {
       const exists = await hasAccount();
       if (!exists) {
-        router.push("/");
+        router.replace("/");
       }
     }
 
@@ -208,9 +208,9 @@ export default function UnlockPage() {
       const pendingInvite = sessionStorage.getItem("lume:pending-invite");
       if (pendingInvite) {
         sessionStorage.removeItem("lume:pending-invite");
-        router.push(`/invite/${pendingInvite}`);
+        router.replace(`/invite/${pendingInvite}`);
       } else {
-        router.push("/chats");
+        router.replace("/chats");
       }
     } catch (unlockError) {
       if (process.env.NODE_ENV !== "production")
@@ -241,13 +241,26 @@ export default function UnlockPage() {
             {t("auth.unlock.pinLabel")}
           </label>
 
-          {/* Hidden input captures keyboard/autofill input */}
+          {/*
+            Hidden input captures keyboard entry.
+
+            `new-password`, not `current-password`: this field is not a login
+            credential the server checks, it is the KDF input for the at-rest master
+            key. Asking the browser to save it would put the only secret protecting
+            the encrypted store beside that store — often synced to a vendor cloud —
+            and make the passphrase-strength floor irrelevant to anyone holding the
+            profile. SEC-20260805-002.
+
+            Securex's validation is "no save prompt appears"; he noted browsers
+            honour `new-password` more consistently than `off` on password fields,
+            so this uses the variant that meets the criterion.
+          */}
           <input
             ref={hiddenInputRef}
             id="unlock-pin"
             type="password"
             inputMode="text"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={pin}
             onChange={handlePinChange}
             onKeyDown={handleKeyDown}
