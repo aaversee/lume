@@ -3,6 +3,7 @@
 
 'use client';
 
+import { t } from "@/lib/i18n";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { hasAccount } from '@/crypto/storage';
@@ -34,32 +35,32 @@ export default function HomePage() {
     <main className="auth-shell">
       <div className="auth-hero auth-hero--wide animate-fade-in">
         <h1 className="auth-welcome stagger-1">
-          {accountExists ? "Welcome back" : "Welcome"}
+          {accountExists ? t("auth.welcomeBack") : t("auth.welcome")}
         </h1>
 
         <p className="auth-sub stagger-2">
-          Built with cryptography, not trust.
+          {t("auth.tagline")}
         </p>
 
         <div className="mt-9 w-full max-w-[320px] mx-auto flex flex-col gap-3 stagger-3">
           {accountExists ? (
             <>
               <button onClick={() => router.push('/unlock')} className="auth-pill">
-                Log in
+                {t("auth.login")}
               </button>
-              <div className="auth-or">or</div>
+              <div className="auth-or">{t("auth.or")}</div>
               <button onClick={() => router.push('/setup')} className="auth-pill-secondary">
-                New account
+                {t("auth.newAccount")}
               </button>
             </>
           ) : (
             <>
               <button onClick={() => router.push('/setup')} className="auth-pill">
-                Create account
+                {t("auth.createAccount")}
               </button>
-              <div className="auth-or">or</div>
+              <div className="auth-or">{t("auth.or")}</div>
               <button onClick={() => router.push('/recover')} className="auth-pill-secondary">
-                Restore access
+                {t("auth.restoreAccess")}
               </button>
             </>
           )}

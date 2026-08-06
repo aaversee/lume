@@ -26,6 +26,7 @@ import NotificationsSection from "./components/NotificationsSection";
 import PrivacySection from "./components/PrivacySection";
 import SecuritySection from "./components/SecuritySection";
 import DangerZoneSection from "./components/DangerZoneSection";
+import { BUILD_LABEL } from "@/lib/buildInfo";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -182,6 +183,16 @@ export default function SettingsPage() {
           <SecuritySection onBackupWarning={setBackupWarning} />
 
           <DangerZoneSection />
+
+          {/*
+            Build identity, at the bottom where a version belongs.
+            Selectable on purpose: the point of showing a commit is that someone
+            can copy it into a bug report, and text you cannot select is a
+            version string that only looks helpful.
+          */}
+          <p className="pt-2 pb-6 text-center text-xs text-[var(--text-muted)] select-text tabular-nums">
+            {BUILD_LABEL}
+          </p>
         </div>
       </div>
 

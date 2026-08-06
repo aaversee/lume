@@ -131,6 +131,11 @@ export const ru: Catalogue = {
     "Все локальные данные будут удалены безвозвратно. Отменить это нельзя.",
   "settings.wipe.confirm": "Стереть",
 
+  "auth.welcome": "Добро пожаловать",
+  "auth.welcomeBack": "С возвращением",
+  "auth.tagline": "Построено на криптографии, а не на доверии.",
+  "auth.newAccount": "Новый аккаунт",
+  "auth.restoreAccess": "Восстановить доступ",
   "auth.or": "или",
   "auth.continue": "Продолжить",
   "auth.login": "Войти",

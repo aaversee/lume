@@ -136,6 +136,11 @@ export const en = {
   "settings.wipe.confirm": "Confirm wipe",
 
   // Auth — shared
+  "auth.welcome": "Welcome",
+  "auth.welcomeBack": "Welcome back",
+  "auth.tagline": "Built with cryptography, not trust.",
+  "auth.newAccount": "New account",
+  "auth.restoreAccess": "Restore access",
   "auth.or": "or",
   "auth.continue": "Continue",
   "auth.login": "Log in",

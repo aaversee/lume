@@ -10,7 +10,27 @@ const analyze = withBundleAnalyzer({
 
 const isDev = process.env.NODE_ENV !== "production";
 
+/**
+ * Build identity, baked into the bundle.
+ *
+ * The commit is what actually identifies a build — the version string sat at
+ * 0.1.0 through dozens of shipped commits — so it is read from whichever
+ * variable the builder provides. Vercel sets VERCEL_GIT_COMMIT_SHA; GitHub
+ * Actions sets GITHUB_SHA; a laptop sets neither and gets "dev", which is the
+ * honest answer for a build nobody can trace.
+ */
+const buildEnv = {
+  NEXT_PUBLIC_BUILD_VERSION: process.env.npm_package_version || "0.0.0",
+  NEXT_PUBLIC_BUILD_COMMIT:
+    process.env.NEXT_PUBLIC_BUILD_COMMIT ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    "dev",
+  NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+};
+
 const nextConfig: NextConfig = {
+  env: buildEnv,
   ...(process.env.STANDALONE === "1" && { output: "standalone" }),
   turbopack: {
     resolveAlias: {
