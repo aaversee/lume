@@ -162,3 +162,30 @@ Two deliberate choices in the shape of it:
 `last_seen` is null until a first authenticated action, so the query falls back
 to `created_at` — otherwise an account registered in bulk and never touched,
 exactly the kind worth reclaiming, would never qualify.
+
+### Reissuing a released username
+
+**A freed username may be claimed by anyone.** Owner decision, 2026-08-06, and it
+covers both ways a name comes free: the owner deleted the account, or it was
+reclaimed for inactivity.
+
+The obvious worry is impersonation — someone takes a name you had verified and
+inherits the trust attached to it. That does not happen here, and the reason is
+structural rather than a matter of care:
+
+- **Contacts are pinned to an identity key, not to a username**
+  (`client/src/lib/identityPinning.ts`, enforced on the outbound bundle in the
+  chat and group send paths and on the inbound X3DH header in
+  `useMessengerSync`). A new holder of the name has different keys, so their
+  prekey bundle is *refused* — not merely displayed with a different safety
+  number.
+- **Safety numbers are computed from both parties' identity keys**
+  (`crypto/safetyNumber.ts`), and the username is not an input. A verified number
+  cannot silently come to mean a different person.
+- Trust-on-first-use applies only where nothing is known yet, so it cannot be
+  used to overwrite an existing anchor.
+
+What a correspondent *does* see is their existing contact ceasing to work: the
+pin refuses the new bundle rather than quietly re-pointing at whoever holds the
+name now. Failing visibly is the intended behaviour — the alternative is the
+impersonation this section is about.
