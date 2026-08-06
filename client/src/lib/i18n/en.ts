@@ -148,6 +148,11 @@ export const en = {
 
   // Auth — unlock
   "auth.unlock.title": "Welcome back",
+  // Idle lock
+  "lock.warningTitle": "Locking soon",
+  "lock.warningBody": "No activity — locking in {seconds}s",
+  "lock.stayUnlocked": "Stay unlocked",
+
   "auth.unlock.pinLabel": "PIN",
   "auth.unlock.pinAria": "Enter PIN",
   "auth.unlock.checking": "Checking…",

@@ -142,6 +142,11 @@ export const ru: Catalogue = {
   "auth.repeatPin": "Повторите PIN",
 
   "auth.unlock.title": "С возвращением",
+  // Idle lock
+  "lock.warningTitle": "Скоро заблокируется",
+  "lock.warningBody": "Нет активности — блокировка через {seconds} с",
+  "lock.stayUnlocked": "Оставить открытым",
+
   "auth.unlock.pinLabel": "PIN",
   "auth.unlock.pinAria": "Введите PIN",
   "auth.unlock.checking": "Проверяем…",
