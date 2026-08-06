@@ -31,15 +31,20 @@ export default function Dedication() {
     printed = true;
 
     console.log(
-      "%c●%c  LUME\n\n" +
+      "%cFor my grandmother, for Valera, for Sasha.\n" +
+        "%cThank you for being there through all of it — the weeks it went well,\nand the ones where nothing worked at all.\n\n" +
         "%cFor Alisa.\n" +
         "%cThank you — for the patience, for the late nights,\nand for being the reason any of this got finished.\n\n" +
-        "%cI love you.\n",
-      `color:${ACCENT};font-size:15px`,
-      "color:inherit;font-size:15px;font-weight:600;letter-spacing:0.14em",
+        "%cI love you.\n\n" +
+        "%cAnd to you, reading this:\n" +
+        "%cthank you for being curious enough to look. What you write here\nstays yours — that was the whole point of building it.\n",
       `color:${ACCENT};font-size:13px;font-weight:600`,
       `color:${MUTED};font-size:13px;line-height:1.6`,
       `color:${ACCENT};font-size:13px;font-weight:600`,
+      `color:${MUTED};font-size:13px;line-height:1.6`,
+      `color:${ACCENT};font-size:13px;font-weight:600`,
+      `color:${ACCENT};font-size:13px;font-weight:600`,
+      `color:${MUTED};font-size:13px;line-height:1.6`,
     );
   }, []);
 

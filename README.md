@@ -10,7 +10,8 @@ client.
   encrypted under its own key.
 - **Keys** never leave the device. They are sealed in IndexedDB under a key
   derived from the user's PIN and held only in a module-scoped vault — never in
-  application state.
+  application state. The vault empties itself after fifteen minutes without
+  interaction, so an unattended screen is not an open conversation.
 
 ## Stack
 

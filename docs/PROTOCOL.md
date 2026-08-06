@@ -1448,6 +1448,8 @@ Legacy `X-RateLimit-*` headers are disabled.
 | Max read receipt message IDs | 100 (unique, no duplicates) |
 | Pending message TTL | 30 days (server-side cleanup) |
 | Inactive account lifetime | 365 days, then deleted and the username released |
+| Idle vault lock | 15 minutes without interaction, 1 minute of warning |
+| Key derivation (at rest) | PBKDF2-SHA256, 600,000 iterations |
 | Registration | 30 accounts / hour per address |
 | Concurrent WebSocket sockets | 128 per address, 5000 per process, 5 per user |
 | Header / request deadline | 20s / 120s |
