@@ -322,14 +322,14 @@ function MessageBubble({
               }}
               className="px-2 py-1 text-caption font-semibold rounded-md bg-red-500/90 text-white hover:bg-red-600 transition-colors"
             >
-              Delete
+              {t("common.delete")}
             </button>
             <button
               type="button"
               onClick={() => setShowActions(false)}
               className="px-2 py-1 text-caption font-semibold rounded-md bg-[var(--surface-strong)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         )}

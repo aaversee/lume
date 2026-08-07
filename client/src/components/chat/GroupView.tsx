@@ -450,10 +450,10 @@ export default function GroupView({ group }: GroupViewProps) {
             {groupMessages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-6">
                 <p className="text-body font-semibold text-[var(--text-primary)]">
-                  No messages yet
+                  {t("chat.noMessagesYet")}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Send the first message to the group.
+                  {t("chat.sendFirstGroup")}
                 </p>
               </div>
             ) : (
@@ -504,7 +504,7 @@ export default function GroupView({ group }: GroupViewProps) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={pendingAttachment.preview}
-                    alt="Attachment preview"
+                    alt={t("chat.attachmentPreview")}
                     className="w-12 h-12 rounded object-cover"
                   />
                 ) : (
@@ -564,7 +564,7 @@ export default function GroupView({ group }: GroupViewProps) {
             {showOptions && (
               <div className="mb-3 px-1 reveal-down">
                 <p className="mb-2 text-caption font-semibold text-[var(--text-muted)]">
-                  Auto-delete
+                  {t("chat.autoDelete")}
                 </p>
                 <SegmentedControl<number | null>
                   options={TIMER_OPTIONS}

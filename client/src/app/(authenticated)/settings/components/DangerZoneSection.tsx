@@ -26,7 +26,7 @@ export default function DangerZoneSection() {
 
   const handleDeleteAccount = async () => {
     if (deletePin.length < MIN_PIN_LENGTH) {
-      setDeleteError("Enter your PIN to confirm");
+      setDeleteError(t("settings.danger.enterPin"));
       return;
     }
     setDeleteError("");

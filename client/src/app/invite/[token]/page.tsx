@@ -225,7 +225,7 @@ export default function InvitePage() {
                 onClick={() => router.push("/chats")}
                 className="auth-pill-secondary"
               >
-                Skip
+                {t("auth.skip")}
               </button>
             </div>
           </>

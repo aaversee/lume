@@ -78,7 +78,7 @@ export default function OwnProfileModal({
           {hasDisplayName ? (
             <div className="flex items-center justify-between py-3 border-b border-[var(--border)]/55">
               <span className="text-body text-[var(--text-secondary)]">
-                Username
+                {t("common.username")}
               </span>
               <span className="text-body text-[var(--text-muted)]">
                 {handle}
@@ -100,7 +100,7 @@ export default function OwnProfileModal({
           onClick={onEditProfile}
           className="mt-6 w-full py-3 rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-alt)] transition-colors"
         >
-          Edit profile
+          {t("profile.edit")}
         </button>
       </div>
     </Modal>

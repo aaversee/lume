@@ -109,7 +109,7 @@ export default function ChatHeader({
       {showOptions ? (
         <div className="mt-4 flex items-center gap-3 flex-wrap reveal-down">
           <span className="text-xs text-[var(--text-muted)]">
-            Auto-delete
+            {t("chat.autoDelete")}
           </span>
           <SegmentedControl<number | null>
             options={TIMER_OPTIONS}

@@ -87,19 +87,19 @@ export default function SetupPage() {
     }
 
     if (normalized.length < 3) {
-      setUsernameError("Minimum 3 characters");
+      setUsernameError(t("auth.setup.errorUsernameShort"));
       return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(normalized)) {
-      setUsernameError("Only letters, numbers and underscore");
+      setUsernameError(t("auth.setup.errorUsernameChars"));
       return;
     }
 
     usernameCheckTimerRef.current = setTimeout(async () => {
       const { data } = await authApi.checkUsername(normalized);
       if (data && !data.available) {
-        setUsernameError("Username taken");
+        setUsernameError(t("auth.setup.errorUsernameTaken"));
       }
     }, 400);
   };
@@ -154,7 +154,7 @@ export default function SetupPage() {
         // `!data` was previously asserted away. A response carrying neither an
         // error nor a body would have thrown mid-registration, after the vault
         // had already been reset — leaving no account and no message saying why.
-        setUsernameError(error || "Registration error");
+        setUsernameError(error || t("auth.setup.errorRegistration"));
         setStep("username");
         return;
       }
@@ -186,7 +186,7 @@ export default function SetupPage() {
     } catch (registrationError) {
       if (process.env.NODE_ENV !== "production")
         console.error("Registration error:", registrationError);
-      setUsernameError("Registration error");
+      setUsernameError(t("auth.setup.errorRegistration"));
       setStep("username");
     } finally {
       setLoading(false);
@@ -258,7 +258,7 @@ export default function SetupPage() {
                 </svg>
               </button>
             )}
-            <span>Step {stepInfo.n} of 3</span>
+            <span>{t("auth.stepOf", { n: stepInfo.n })}</span>
           </div>
         )}
 
@@ -299,7 +299,7 @@ export default function SetupPage() {
             </button>
 
             <p className="auth-foot mt-7">
-              Already have an account?{" "}
+              {t("auth.haveAccount")}{" "}
               <button
                 className="auth-foot-link"
                 onClick={() => router.push("/unlock")}

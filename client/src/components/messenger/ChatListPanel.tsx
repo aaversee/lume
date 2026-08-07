@@ -581,7 +581,7 @@ export default function ChatListPanel({
             {t("chatList.tabGroups")}
           </button>
           {activeTab === 'chats' && hiddenChatsEnabled && showHiddenChats ? (
-            <span className="ml-auto text-caption text-[var(--text-muted)]">Hidden chats</span>
+            <span className="ml-auto text-caption text-[var(--text-muted)]">{t("hidden.title")}</span>
           ) : null}
           </div>
         </div>
@@ -639,7 +639,7 @@ export default function ChatListPanel({
       >
         <div className="space-y-4">
           <p className="text-xs text-[var(--text-secondary)]">
-            Enter your hidden chats PIN to open hidden conversations.
+            {t("hidden.prompt")}
           </p>
           <Input
             type="password"
@@ -659,7 +659,7 @@ export default function ChatListPanel({
             }}
           />
           <Button fullWidth onClick={() => void unlockHiddenChats()}>
-            Unlock
+            {t("common.unlock")}
           </Button>
         </div>
       </Modal>

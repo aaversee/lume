@@ -73,7 +73,7 @@ export default function ChatInput({
         <div className="mb-3 flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--surface-alt)] border border-[var(--border)]">
           {attachment.preview ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={attachment.preview} alt="Attachment preview" className="w-12 h-12 rounded object-cover" />
+            <img src={attachment.preview} alt={t("chat.attachmentPreview")} className="w-12 h-12 rounded object-cover" />
           ) : (
             <div className="w-12 h-12 rounded bg-[var(--surface-strong)] flex items-center justify-center">
               <svg className="w-6 h-6 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">

@@ -100,7 +100,7 @@ export default function CreateGroupModal({
     <Modal isOpen={isOpen} onClose={resetAndClose} title={t("modal.group.createTitle")}>
       <div className="space-y-4">
         <Input
-          label="Group name"
+          label={t("group.name")}
           value={groupName}
           onChange={(e) => {
             setGroupName(e.target.value.slice(0, 64));

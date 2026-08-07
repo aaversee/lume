@@ -137,7 +137,7 @@ export default function SettingsPage() {
           </div>
           {saveFlash ? (
             <span className="text-caption text-[var(--text-muted)] animate-pulse flex-shrink-0">
-              Saved
+              {t("common.saved")}
             </span>
           ) : null}
         </div>
@@ -166,16 +166,15 @@ export default function SettingsPage() {
           {backupWarning ? (
             <div className="p-3 rounded-[var(--radius-md)] border border-[var(--text-muted)]/30 bg-[var(--surface-alt)]">
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                <span className="font-semibold">PIN changed.</span> Old backups
-                are encrypted with the previous PIN. Create a new backup to use
-                the current PIN.
+                <span className="font-semibold">{t("settings.pinChanged")}</span>{" "}
+                {t("settings.backupStale")}
               </p>
               <button
                 type="button"
                 onClick={() => setBackupWarning(false)}
                 className="mt-2 text-caption text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
-                Dismiss
+                {t("common.dismiss")}
               </button>
             </div>
           ) : null}

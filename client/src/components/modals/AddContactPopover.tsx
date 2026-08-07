@@ -57,7 +57,7 @@ export default function AddContactPopover({
         htmlFor={fieldId}
         className="block px-1.5 pt-1 pb-2 text-xs font-semibold text-[var(--text-secondary)]"
       >
-        Start chat
+        {t("contact.startChat")}
       </label>
       <input
         id={fieldId}

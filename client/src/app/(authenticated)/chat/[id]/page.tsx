@@ -676,12 +676,12 @@ export default function ChatPage({ params }: ChatPageProps) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[var(--text-secondary)] text-sm">Chat not found</p>
+          <p className="text-[var(--text-secondary)] text-sm">{t("chat.notFound")}</p>
           <button
             onClick={() => router.push("/chats")}
             className="mt-4 apple-button-secondary px-6"
           >
-            Back
+            {t("auth.back")}
           </button>
         </div>
       </div>
@@ -751,10 +751,10 @@ export default function ChatPage({ params }: ChatPageProps) {
               </svg>
             </div>
             <p className="mt-4 text-body font-semibold text-[var(--text-primary)]">
-              No messages yet
+              {t("chat.noMessagesYet")}
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Send the first message.
+              {t("chat.sendFirst")}
             </p>
           </div>
         ) : (

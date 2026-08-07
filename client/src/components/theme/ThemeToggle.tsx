@@ -3,6 +3,7 @@
 
 'use client';
 
+import { t } from "@/lib/i18n";
 import React from 'react';
 import { applyTheme, getCurrentTheme } from '@/lib/theme';
 
@@ -25,8 +26,8 @@ export default function ThemeToggle({
       type="button"
       onClick={toggle}
       className={`${sizes} inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-alt)] transition-colors ${className}`}
-      aria-label="Toggle theme"
-      title="Toggle theme"
+      aria-label={t("theme.toggle")}
+      title={t("theme.toggle")}
     >
       <span className="theme-icon theme-icon--sun" aria-hidden="true">
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">

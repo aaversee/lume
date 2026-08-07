@@ -280,7 +280,7 @@ export default function PrivacySection({
 
         <div className="mb-4">
           <p className="text-body text-[var(--text-secondary)] mb-3">
-            Self-destruct default
+            {t("settings.selfDestructDefault")}
           </p>
           <SegmentedControl<number | null>
             options={SELF_DESTRUCT_OPTIONS}
@@ -371,14 +371,14 @@ export default function PrivacySection({
               onClick={() => openHiddenPinModal("change")}
               className="flex-1 apple-button-secondary text-xs"
             >
-              Change Hidden PIN
+              {t("hidden.change")}
             </button>
             <button
               type="button"
               onClick={() => openHiddenPinModal("reset")}
               className="flex-1 apple-button-secondary text-xs"
             >
-              Reset Hidden PIN
+              {t("hidden.reset")}
             </button>
           </div>
         ) : null}

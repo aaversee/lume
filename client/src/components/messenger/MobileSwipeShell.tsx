@@ -3,6 +3,7 @@
 
 'use client';
 
+import { t } from "@/lib/i18n";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface MobileSwipeShellProps {
@@ -181,13 +182,13 @@ export default function MobileSwipeShell({ profilePanel, chatListPanel }: Mobile
       <div
         className="flex-shrink-0 flex items-center justify-center gap-2 py-2"
         role="tablist"
-        aria-label="Panel navigation"
+        aria-label={t("nav.panels")}
       >
         <button
           type="button"
           role="tab"
           aria-selected={activePanel === 0}
-          aria-label="Profile panel"
+          aria-label={t("nav.profilePanel")}
           onClick={() => setActivePanel(0)}
           className={`
             w-1.5 h-1.5 rounded-full transition-all duration-200
@@ -198,7 +199,7 @@ export default function MobileSwipeShell({ profilePanel, chatListPanel }: Mobile
           type="button"
           role="tab"
           aria-selected={activePanel === 1}
-          aria-label="Messages panel"
+          aria-label={t("nav.messagesPanel")}
           onClick={() => setActivePanel(1)}
           className={`
             w-1.5 h-1.5 rounded-full transition-all duration-200

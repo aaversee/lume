@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-LUME-Source-Available
 // Copyright (C) 2026 LUME Inc
 
+import { t } from "@/lib/i18n";
 import React from 'react';
 
 interface BadgeProps {
@@ -54,7 +55,7 @@ export function SecureBadge() {
         </svg>
       }
     >
-      Secure
+      {t("status.secure")}
     </Badge>
   );
 }
@@ -74,7 +75,7 @@ export function VerifiedBadge() {
         </svg>
       }
     >
-      Verified
+      {t("status.verified")}
     </Badge>
   );
 }
@@ -94,7 +95,7 @@ export function KeyUpdatedBadge() {
         </svg>
       }
     >
-      Key updated
+      {t("status.keyUpdated")}
     </Badge>
   );
 }
@@ -102,7 +103,7 @@ export function KeyUpdatedBadge() {
 export function OfflineBadge() {
   return (
     <Badge variant="neutral" size="sm">
-      Offline
+      {t("status.offline")}
     </Badge>
   );
 }
@@ -110,7 +111,7 @@ export function OfflineBadge() {
 export function OnlineBadge() {
   return (
     <Badge variant="success" size="sm">
-      Online
+      {t("status.online")}
     </Badge>
   );
 }

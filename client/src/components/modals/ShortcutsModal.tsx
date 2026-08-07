@@ -3,6 +3,7 @@
 
 "use client";
 
+import { t } from "@/lib/i18n";
 import { Modal } from "@/components/ui";
 import {
   SHORTCUTS,
@@ -23,7 +24,7 @@ export default function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps)
   })).filter((section) => section.bindings.length > 0);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Keyboard shortcuts">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("shortcuts.title")}>
       <div className="space-y-6">
         {grouped.map(({ group, bindings }) => (
           <Section key={group} group={group} bindings={bindings} />

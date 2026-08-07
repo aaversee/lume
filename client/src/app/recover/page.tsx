@@ -270,7 +270,7 @@ export default function RecoverPage() {
                 onClick={() => router.push("/")}
                 className="auth-pill-secondary"
               >
-                Back
+                {t("auth.back")}
               </button>
             </div>
           </div>

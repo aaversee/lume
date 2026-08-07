@@ -3,6 +3,7 @@
 
 'use client';
 
+import { t } from "@/lib/i18n";
 import React from 'react';
 import type { Chat } from '@/stores';
 import type { Contact } from '@/crypto/storage';
@@ -59,7 +60,7 @@ export default function RightRail({
   return (
     <div className="h-full min-h-0 overflow-hidden">
       <div className="h-full flex flex-col items-center px-3 pt-4 pb-4">
-        <p className="text-caption text-[var(--text-muted)] mb-3 flex-shrink-0">Contacts</p>
+        <p className="text-caption text-[var(--text-muted)] mb-3 flex-shrink-0">{t("contact.list")}</p>
         <div className="flex-1 min-h-0 overflow-y-auto w-full flex flex-col items-center gap-3 pt-1">
           {contactOrder.map((c) => (
             <AvatarButton

@@ -57,7 +57,7 @@ export default function ProfileModal({
         <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">
           @{contact.username}
         </h2>
-        <p className="text-xs text-[var(--text-muted)] mb-6">LUME user</p>
+        <p className="text-xs text-[var(--text-muted)] mb-6">{t("contact.lumeUser")}</p>
 
         {vaultHasKeys() ? (
           <div className="w-full bg-[var(--surface-alt)] rounded-[var(--radius-md)] p-5 border border-[var(--border)] text-center">
@@ -154,7 +154,7 @@ export default function ProfileModal({
             className="mt-6 w-full py-3 rounded-full border border-red-500/30 text-red-500 text-xs font-semibold hover:bg-red-500/5 transition-colors"
             onClick={() => setShowDeleteContact(true)}
           >
-            Delete contact
+            {t("contact.delete")}
           </button>
         ) : (
           <div className="mt-6 p-4 rounded-[var(--radius-md)] border border-red-500/30 bg-red-500/5">
@@ -166,13 +166,13 @@ export default function ProfileModal({
                 onClick={() => setShowDeleteContact(false)}
                 className="flex-1 apple-button-secondary"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={onDeleteContact}
                 className="flex-1 py-3 rounded-full bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
               >
-                Delete
+                {t("common.delete")}
               </button>
             </div>
           </div>
